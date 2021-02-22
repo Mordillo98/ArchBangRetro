@@ -1,0 +1,7 @@
+[Trigger]
+Operation = Install
+Type = Package
+Target = shotwell
+
+[Action]
+When = PostTransaction

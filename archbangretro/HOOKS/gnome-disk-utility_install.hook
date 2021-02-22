@@ -1,0 +1,7 @@
+[Trigger]
+Operation = Install
+Type = Package
+Target = gnome-disk-utility
+
+[Action]
+When = PostTransaction

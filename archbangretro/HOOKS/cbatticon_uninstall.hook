@@ -1,0 +1,7 @@
+[Trigger]
+Operation = Remove
+Type = Package
+Target = cbatticon
+
+[Action]
+When = PostTransaction
