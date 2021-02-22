@@ -1,0 +1,15 @@
+~/.screenlayout/screen.sh &
+tint2 &
+/usr/lib/xfce4/notifyd/xfce4-notifyd & 
+/usr/bin/nm-applet --sm-disable &
+conky -q &
+nitrogen --restore
+amixer set Master 65% &
+amixer set PCM 100% &
+(sleep 3 && volumeicon) &
+(sleep 3 && batterymon) &
+#xcompmgr &
+#xbacklight -set 100 &
+#/usr/bin/synclient TouchpadOff=1 &
+#cbatticon &
+#fbxkb &
