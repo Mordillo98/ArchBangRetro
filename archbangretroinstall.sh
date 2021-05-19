@@ -2,51 +2,11 @@
 
 set -e  # Script must stop if there is an error.
 
-# +-+-+-+-+-
-# VARIABLES
-# +-+-+-+-+-
+# +-+-+-+-+
+# SETTINGS
+# +-+-+-+-+
 
-FIRMWARE="BIOS"                # Choose BIOS or UEFI
-
-DRIVE="/dev/sda"               # This drive will be formatted
-DRIVE_PART1=${DRIVE}1          # boot partition
-DRIVE_PART2=${DRIVE}2          # swap partition
-DRIVE_PART3=${DRIVE}3          # root partition
-
-TIMEZONE="America/Toronto"   
-REGION="en_CA.UTF-8 UTF-8"     
-LANGUAGE="en_CA.UTF-8"
-KEYMAP="us"
-
-HOSTNAME="archbangretrobox"
-
-ARCH_USER="archretrouser"
-USER_PSW="archretropsw"
-ROOT_PSW="archretroroot"
-
-REFLECTOR_COUNTRY="Canada"
-
-# +-+-+-+-+-+-
-# COLOR CODES
-# +-+-+-+-+-+-
-
-BLUE='\033[1;34m'
-GREEN='\033[1;32m'
-CYAN='\033[1;36m'
-WHITE='\033[1;37m'
-YELLOW='\033[1;33m'
-RED='\033[1;31m'
-BCK_RED='\033[1;41m'
-NC='\033[0m'
-
-# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
-# CUSTOM FILES FOR ARCHBANGRETRO
-# 
-# Those files will be used during 
-# chroot to customize archbangretro
-# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
-
-ARCHBANGRETRO_FOLDER=/opt/archbangretro
+source ./SETTINGS
 
 #
 # FUNCTIONS
@@ -156,7 +116,6 @@ function countsleep {
 
 }
 
-
 #
 # MAIN SCRIPT
 # ===========	
@@ -213,7 +172,13 @@ printf "${GREEN}USER_PSW    = ${CYAN}${USER_PSW}\n"
 printf "${GREEN}ROOT_PSW    = ${CYAN}${ROOT_PSW}\n\n"
 printf "${GREEN}MIRRORS COUNTRY = ${CYAN}${REFLECTOR_COUNTRY}\n\n"
 
+printf "${WHITE}*********************************************${NC}\n\n"
+
 printf "${RED}THIS WILL DESTROY ALL CONTENT OF ${WHITE}${BCK_RED}${DRIVE^^}${NC}${RED} !!!\n\n"
+
+printf "${GREEN}BOOT = ${CYAN}${DRIVE_PART1}\n"
+printf "${GREEN}SWAP = ${CYAN}${DRIVE_PART2}\n"
+printf "${GREEN}ROOT = ${CYAN}${DRIVE_PART3}\n\n"
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 # COUNTDOWN WARNING
@@ -226,7 +191,7 @@ printf "${RED}THIS WILL DESTROY ALL CONTENT OF ${WHITE}${BCK_RED}${DRIVE^^}${NC}
 # launched too early.
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 
-countsleep "Automatic install will start in... " 10 
+countsleep "Automatic install will start in... " 5 
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 # INSTALL THE NEEDED DEPENDENCIES 
@@ -275,7 +240,7 @@ if mount | grep /mnt > /dev/null; then
   umount -R /mnt
 fi 
 
-wipefs -a $DRIVE 
+wipefs -a $DRIVE --force 
 
 if [ ${FIRMWARE} = "BIOS" ]; then
   parted -a optimal $DRIVE --script mklabel msdos
@@ -331,23 +296,25 @@ mount ${DRIVE_PART1} /mnt/boot
 # INSTALL PACKAGES
 # +-+-+-+-+-+-+-+-+
 
+#
+# DeadBeef
+# LibGlade
+
 EDITOR="vim nano"
-PYGTK_DEPENDENCIES="libglade python2-cairo python2-numpy"
-CATFISH_DEPENDENCIES="python2 python2-dbus python2-xdg"
-DEPENDENCIES="git wget intltool python-cairo python-gobject python-pillow libxft libxinerama gdk-pixbuf-xlib python-distutils-extra cmake"
-OPENSSH="openssh"
+PYGTK_DEPENDENCIES="python2-cairo python2-numpy"
+CATFISH_DEPENDENCIES="dbus-python python2 python2-xdg"
+DEPENDENCIES="gnome-themes-standard git wget intltool python-cairo python-gobject python-pillow libxft libxinerama gdk-pixbuf-xlib python-distutils-extra cmake"
 XORG="xorg-server xorg-xinit xorg-xkill"
 OPENBOX="openbox ttf-dejavu ttf-liberation"
 OPENBOX_MENU="glib2 gtk2 menu-cache gnome-menus lxmenu-data"
-ARCHBANG_APPS="reflector lxterminal lxappearance lxappearance-obconf lxinput leafpad gucharmap pcmanfm galculator parcellite xarchiver shotwell epdfview deadbeef htop arandr obconf tint2 conky xcompmgr nitrogen scrot exo gnome-mplayer xfburn libfm-gtk2 gmrun slim packer arj cronie dialog dnsutils gnome-keyring gsimplecal gtk-engine-murrine gtk-engines inetutils jfsutils logrotate lzop memtest86+ modemmanager ntfs-3g p7zip reiserfsprogs rsync squashfs-tools syslinux tcl unrar unzip usb_modeswitch virtualbox-guest-utils zip gvfs cbatticon"
+ARCHBANG_APPS="reflector lxterminal lxappearance lxappearance-obconf lxinput leafpad gucharmap pcmanfm galculator parcellite xarchiver shotwell epdfview htop arandr obconf tint2 conky xcompmgr nitrogen scrot exo gnome-mplayer xfburn libfm-gtk2 gmrun slim packer arj cronie dialog dnsutils gnome-keyring gsimplecal gtk-engine-murrine gtk-engines inetutils jfsutils logrotate lzop memtest86+ modemmanager ntfs-3g p7zip reiserfsprogs rsync squashfs-tools syslinux tcl unrar unzip usb_modeswitch virtualbox-guest-utils zip gvfs cbatticon"
 ARCHBANG_ICONS="gnome-icon-theme hicolor-icon-theme gnome-icon-theme-symbolic" 
-BROWSER="firefox"
 CODECS="a52dec faac faad2 jasper lame libdca libdv libmad libmpeg2 libtheora libvorbis libxv wavpack x264 xvidcore gstreamer"
 SOUND="volumeicon alsa-utils pulseaudio alsa-firmware alsa-oss"
 NETWORK="network-manager-applet broadcom-wl xfce4-notifyd"
 XF86="xf86-input-elographics xf86-input-evdev xf86-input-libinput xf86-input-synaptics xf86-input-vmmouse xf86-input-void xf86-input-wacom xf86-video-amdgpu xf86-video-ati xf86-video-dummy xf86-video-fbdev xf86-video-intel xf86-video-nouveau xf86-video-openchrome xf86-video-sisusb xf86-video-vesa xf86-video-vmware xf86-video-voodoo xf86-video-qxl"
 
-pacstrap /mnt base base-devel linux linux-firmware man-db man-pages texinfo grub efibootmgr $EDITOR $DEPENDENCIES $PYGTK_DEPENDENCIES $CATFISH_DEPENDENCIES $OPENSSH $XORG $OPENBOX $OPENBOX_MENU $ARCHBANG_APPS $ARCHBANG_ICONS $BROWSER $CODECS $SOUND $NETWORK $XF86
+pacstrap /mnt base base-devel linux linux-firmware man-db man-pages texinfo grub efibootmgr $EDITOR $DEPENDENCIES $PYGTK_DEPENDENCIES $CATFISH_DEPENDENCIES $XORG $OPENBOX $OPENBOX_MENU $ARCHBANG_APPS $ARCHBANG_ICONS $CODECS $SOUND $NETWORK $XF86
 
 # +-+-+-+-+-+-+-+-+
 # SETUP /ETC/FSTAB
@@ -466,13 +433,15 @@ EOT
 
 mkdir -p /etc/skel/.config
 mkdir -p /etc/skel/.icons
+mkdir -p /etc/skel/.local/share/file-manager/actions/
 
 cp ${ARCHBANGRETRO_FOLDER}/skel/conkyrc /etc/skel/.conkyrc
 cp ${ARCHBANGRETRO_FOLDER}/skel/conkyrc1 /etc/skel/.conkyrc1
 cp -R ${ARCHBANGRETRO_FOLDER}/skel/ICONS/* /etc/skel/.icons
 cp ${ARCHBANGRETRO_FOLDER}/skel/bashrc /etc/skel/.bashrc
 cp -R ${ARCHBANGRETRO_FOLDER}/skel/CONFIG/* /etc/skel/.config/
-cp ${ARCHBANGRETRO_FOLDER}/skel/gtkrc-2.0 /etc/skel/.gtkrc-2.0 
+cp ${ARCHBANGRETRO_FOLDER}/skel/gtkrc-2.0 /etc/skel/.gtkrc-2.0
+cp ${ARCHBANGRETRO_FOLDER}/skel/local/terminal.desktop /etc/skel/.local/share/file-manager/actions/ 
 
 cat > "/etc/skel/.xinitrc" << "EOT"
 exec openbox-session
@@ -716,6 +685,25 @@ sudo -u ${ARCH_USER} makepkg -s
 pacman -U ./python2-gobject2*.pkg.tar.zst --noconfirm
 rm -rf /home/${ARCH_USER}/python2-gobject2
 
+
+# +-+-+-+-+
+# DEADBEEF
+# +-+-+-+-+
+
+cd /home/${ARCH_USER}
+sudo -u ${ARCH_USER} wget https://archive.archlinux.org/packages/d/deadbeef/deadbeef-1.8.4-1-x86_64.pkg.tar.zst
+pacman -U ./deadbeef*.pkg.tar.zst --noconfirm
+rm -f deadbeef*.pkg.tar.zst
+
+# +-+-+-+-+
+# LIBGLADE
+# +-+-+-+-+
+
+cd /home/${ARCH_USER}
+sudo -u ${ARCH_USER} wget https://archive.archlinux.org/packages/l/libglade/libglade-2.6.4-7-x86_64.pkg.tar.zst
+pacman -U ./libglade*.pkg.tar.zst --noconfirm
+rm -f libglade*.pkg.tar.zst
+
 # +-+-+-
 # PYGTK (dependency for catfish-python2 and obkey)
 # +-+-+-
@@ -726,6 +714,16 @@ cd /home/${ARCH_USER}/pygtk
 sudo -u ${ARCH_USER} makepkg -s
 pacman -U ./pygtk*.pkg.tar.zst --noconfirm
 rm -rf /home/${ARCH_USER}/pygtk
+
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
+# PYTHON2-DBUS (dependency for catfish-python2)
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
+
+mkdir /home/${ARCH_USER}/python2-dbus
+cd /home/${ARCH_USER}/python2-dbus
+wget https://archive.archlinux.org/repos/2021/02/28/extra/os_x86_64/python2-dbus-1.2.16-3-x86_64.pkg.tar.zst
+pacman -U ./python2-dbus*.pkg.tar.zst --noconfirm
+rm -rf /home/${ARCH_USER}/python2-dbus
 
 # +-+-+-
 # OBKEY 
@@ -850,6 +848,17 @@ cd /home/${ARCH_USER}/openbox-themes
 sudo -u ${ARCH_USER} makepkg -s
 pacman -U ./openbox-themes*.pkg.tar.zst --noconfirm
 rm -rf /home/${ARCH_USER}/openbox-themes
+
+# +-+-+-+-+-+-+-
+# BRAVE BROWSER
+# +-+-+-+-+-+-+-
+
+cd /home/${ARCH_USER}
+sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/brave-bin.git
+cd /home/${ARCH_USER}/brave-bin
+sudo -u ${ARCH_USER} makepkg -s
+pacman -U ./brave-bin*.pkg.tar.zst --noconfirm
+rm -rf /home/${ARCH_USER}/brave-bin
 
 # +-+-+-+-
 # ARCHBEY
