@@ -303,7 +303,7 @@ mount ${DRIVE_PART1} /mnt/boot
 EDITOR="vim nano"
 PYGTK_DEPENDENCIES="python2-cairo python2-numpy"
 CATFISH_DEPENDENCIES="dbus-python python2 python2-xdg"
-DEPENDENCIES="gnome-themes-standard git wget intltool python-cairo python-gobject python-pillow libxft libxinerama gdk-pixbuf-xlib python-distutils-extra cmake"
+DEPENDENCIES="go gnome-themes-standard git wget intltool python-cairo python-gobject python-pillow libxft libxinerama gdk-pixbuf-xlib python-distutils-extra cmake"
 XORG="xorg-server xorg-xinit xorg-xkill"
 OPENBOX="openbox ttf-dejavu ttf-liberation"
 OPENBOX_MENU="glib2 gtk2 menu-cache gnome-menus lxmenu-data"
@@ -312,9 +312,10 @@ ARCHBANG_ICONS="gnome-icon-theme hicolor-icon-theme gnome-icon-theme-symbolic"
 CODECS="a52dec faac faad2 jasper lame libdca libdv libmad libmpeg2 libtheora libvorbis libxv wavpack x264 xvidcore gstreamer"
 SOUND="volumeicon alsa-utils pulseaudio alsa-firmware alsa-oss"
 NETWORK="network-manager-applet broadcom-wl xfce4-notifyd"
+BROWSER="firefox"
 XF86="xf86-input-elographics xf86-input-evdev xf86-input-libinput xf86-input-synaptics xf86-input-vmmouse xf86-input-void xf86-input-wacom xf86-video-amdgpu xf86-video-ati xf86-video-dummy xf86-video-fbdev xf86-video-intel xf86-video-nouveau xf86-video-openchrome xf86-video-sisusb xf86-video-vesa xf86-video-vmware xf86-video-voodoo xf86-video-qxl"
 
-pacstrap /mnt base base-devel linux linux-firmware man-db man-pages texinfo grub efibootmgr $EDITOR $DEPENDENCIES $PYGTK_DEPENDENCIES $CATFISH_DEPENDENCIES $XORG $OPENBOX $OPENBOX_MENU $ARCHBANG_APPS $ARCHBANG_ICONS $CODECS $SOUND $NETWORK $XF86
+pacstrap /mnt base base-devel linux linux-firmware man-db man-pages texinfo grub efibootmgr $EDITOR $DEPENDENCIES $PYGTK_DEPENDENCIES $CATFISH_DEPENDENCIES $XORG $OPENBOX $OPENBOX_MENU $ARCHBANG_APPS $ARCHBANG_ICONS $CODECS $SOUND $NETWORK $BROWSER $XF86
 
 # +-+-+-+-+-+-+-+-+
 # SETUP /ETC/FSTAB
@@ -630,16 +631,16 @@ mkdir -p /etc/pacman.d/hooks
 
 cp -R ${ARCHBANGRETRO_FOLDER}/HOOKS/* /etc/pacman.d/hooks/ 
 
-# +-+-+-+-
-# YAY-BIN
-# +-+-+-+-
+# +-+-
+# YAY
+# +-+-
 
 cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/yay-bin.git
-cd /home/${ARCH_USER}/yay-bin
+sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/yay.git
+cd /home/${ARCH_USER}/yay
 sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./yay-bin*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/yay-bin
+pacman -U ./yay*.pkg.tar.zst --noconfirm
+rm -rf /home/${ARCH_USER}/yay
 
 # +-+-+-+-+-+-
 # OBMENU2-GIT
@@ -849,17 +850,6 @@ sudo -u ${ARCH_USER} makepkg -s
 pacman -U ./openbox-themes*.pkg.tar.zst --noconfirm
 rm -rf /home/${ARCH_USER}/openbox-themes
 
-# +-+-+-+-+-+-+-
-# BRAVE BROWSER
-# +-+-+-+-+-+-+-
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/brave-bin.git
-cd /home/${ARCH_USER}/brave-bin
-sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./brave-bin*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/brave-bin
-
 # +-+-+-+-
 # ARCHBEY
 # +-+-+-+-
@@ -920,9 +910,9 @@ rm -rf /home/${ARCH_USER}/hardinfo-git
 # +-+-+-+-+-+-+-+-+-+-+-+-+
 
 cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/gnome-disk-utility-3.4.1.git
+mkdir gnome-disk-utility-3.4.1
 cd /home/${ARCH_USER}/gnome-disk-utility-3.4.1
-sudo -u ${ARCH_USER} makepkg -s
+wget https://sourceforge.net/projects/archbangretro/files/gnome-disk-utility-3.4.1-3.4.1-1-x86_64.pkg.tar.zst
 pacman -U ./gnome-disk-utility-3.4.1*.pkg.tar.zst --noconfirm
 rm -rf /home/${ARCH_USER}/gnome-disk-utility-3.4.1
 
