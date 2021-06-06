@@ -962,6 +962,14 @@ chmod +x /usr/share/ab/ab.png
 
 systemctl enable slim.service
 
+# +-+-+-+-+-+-+-+-+-+
+# FIREFOX EXTENSIONS
+# +-+-+-+-+-+-+-+-+-+
+
+mkdir -p /usr/lib/firefox/distribution/extensions
+cp ${ARCHBANGRETRO_FOLDER}/firefox/* /usr/lib/firefox/distribution/extensions/
+chmod +x /usr/lib/firefox/distribution/extensions/* 
+
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 # /ETC/PROFILE 
 #
