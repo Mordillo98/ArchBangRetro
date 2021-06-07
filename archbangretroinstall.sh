@@ -435,6 +435,7 @@ EOT
 mkdir -p /etc/skel/.config
 mkdir -p /etc/skel/.icons
 mkdir -p /etc/skel/.local/share/file-manager/actions/
+mkdir -p /etc/skel/.mozilla
 
 cp ${ARCHBANGRETRO_FOLDER}/skel/conkyrc /etc/skel/.conkyrc
 cp ${ARCHBANGRETRO_FOLDER}/skel/conkyrc1 /etc/skel/.conkyrc1
@@ -442,7 +443,8 @@ cp -R ${ARCHBANGRETRO_FOLDER}/skel/ICONS/* /etc/skel/.icons
 cp ${ARCHBANGRETRO_FOLDER}/skel/bashrc /etc/skel/.bashrc
 cp -R ${ARCHBANGRETRO_FOLDER}/skel/CONFIG/* /etc/skel/.config/
 cp ${ARCHBANGRETRO_FOLDER}/skel/gtkrc-2.0 /etc/skel/.gtkrc-2.0
-cp ${ARCHBANGRETRO_FOLDER}/skel/local/terminal.desktop /etc/skel/.local/share/file-manager/actions/ 
+cp ${ARCHBANGRETRO_FOLDER}/skel/local/terminal.desktop /etc/skel/.local/share/file-manager/actions/
+cp -R ${ARCHBANGRETRO_FOLDER}/skel/mozilla/* /etc/skel/.mozilla/ 
 
 cat > "/etc/skel/.xinitrc" << "EOT"
 exec openbox-session
