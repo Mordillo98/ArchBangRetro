@@ -1,7 +1,0 @@
-[Trigger]
-Operation = Install
-Type = Package
-Target = vim
-
-[Action]
-When = PostTransaction

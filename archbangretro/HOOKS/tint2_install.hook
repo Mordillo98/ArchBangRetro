@@ -1,7 +1,0 @@
-[Trigger]
-Operation = Install
-Type = Package
-Target = tint2
-
-[Action]
-When = PostTransaction

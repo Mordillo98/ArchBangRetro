@@ -1,9 +1,0 @@
-#!/bin/bash
-#A script to switch conky
-## Conkyswitch V.3 ;-) [Credits- genesis300, yoshi314 and combined by sHy ;-D]
-
-pkill -2 -f conky
-cp ~/.conkyrc ~/.conkyrc.bak
-cp ~/.conkyrc1 ~/.conkyrc
-mv ~/.conkyrc.bak ~/.conkyrc1
-conky -c ~/.conkyrc -q &

@@ -1,7 +1,0 @@
-[Trigger]
-Operation = Install
-Type = Package
-Target = cmake
-
-[Action]
-When = PostTransaction

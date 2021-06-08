@@ -1,7 +1,0 @@
-[Trigger]
-Operation = Install
-Type = Package
-Target = exo
-
-[Action]
-When = PostTransaction

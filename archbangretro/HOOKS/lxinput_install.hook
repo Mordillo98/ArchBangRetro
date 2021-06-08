@@ -1,7 +1,0 @@
-[Trigger]
-Operation = Install
-Type = Package
-Target = lxinput
-
-[Action]
-When = PostTransaction

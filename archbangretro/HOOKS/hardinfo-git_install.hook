@@ -1,7 +1,0 @@
-[Trigger]
-Operation = Install
-Type = Package
-Target = hardinfo-git
-
-[Action]
-When = PostTransaction
