@@ -331,7 +331,10 @@ genfstab -U /mnt >> /mnt/etc/fstab
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 mkdir -p /mnt${ARCHBANGRETRO_FOLDER}
-cp -R ./archbangretro/* /mnt${ARCHBANGRETRO_FOLDER}
+cd /mnt${ARCHBANGRETRO_FOLDER}
+wget https://sourceforge.net/projects/archbangretro/files/archbangretro.tar
+tar -xvf archbangretro.tar
+rm -f archbangretro.tar
 
 # +-+-+-+-+-+-+-
 # CHROOT SCRIPT
@@ -435,7 +438,6 @@ EOT
 mkdir -p /etc/skel/.config
 mkdir -p /etc/skel/.icons
 mkdir -p /etc/skel/.local/share/file-manager/actions/
-mkdir -p /etc/skel/.mozilla
 
 cp ${ARCHBANGRETRO_FOLDER}/skel/conkyrc /etc/skel/.conkyrc
 cp ${ARCHBANGRETRO_FOLDER}/skel/conkyrc1 /etc/skel/.conkyrc1
@@ -444,7 +446,6 @@ cp ${ARCHBANGRETRO_FOLDER}/skel/bashrc /etc/skel/.bashrc
 cp -R ${ARCHBANGRETRO_FOLDER}/skel/CONFIG/* /etc/skel/.config/
 cp ${ARCHBANGRETRO_FOLDER}/skel/gtkrc-2.0 /etc/skel/.gtkrc-2.0
 cp ${ARCHBANGRETRO_FOLDER}/skel/local/terminal.desktop /etc/skel/.local/share/file-manager/actions/
-cp -R ${ARCHBANGRETRO_FOLDER}/skel/mozilla/* /etc/skel/.mozilla/ 
 
 cat > "/etc/skel/.xinitrc" << "EOT"
 exec openbox-session
