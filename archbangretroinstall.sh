@@ -307,7 +307,7 @@ DEPENDENCIES="go gnome-themes-standard git wget intltool python-cairo python-gob
 XORG="xorg-server xorg-xinit xorg-xkill"
 OPENBOX="openbox ttf-dejavu ttf-liberation"
 OPENBOX_MENU="glib2 gtk2 menu-cache gnome-menus lxmenu-data"
-ARCHBANG_APPS="reflector lxterminal lxappearance lxappearance-obconf lxinput leafpad gucharmap pcmanfm galculator parcellite xarchiver shotwell epdfview htop arandr obconf tint2 conky xcompmgr nitrogen scrot exo gnome-mplayer xfburn libfm-gtk2 gmrun slim packer arj cronie dialog dnsutils gnome-keyring gsimplecal gtk-engine-murrine gtk-engines inetutils jfsutils logrotate lzop memtest86+ modemmanager ntfs-3g p7zip reiserfsprogs rsync squashfs-tools syslinux tcl unrar unzip usb_modeswitch virtualbox-guest-utils zip gvfs cbatticon"
+ARCHBANG_APPS="reflector lxterminal lxappearance lxappearance-obconf lxinput leafpad gucharmap pcmanfm galculator parcellite xarchiver shotwell epdfview htop arandr obconf tint2 conky xcompmgr nitrogen scrot exo gnome-mplayer xfburn libfm-gtk2 gmrun slim packer arj cronie dialog dnsutils gnome-keyring gsimplecal gtk-engine-murrine gtk-engines inetutils jfsutils logrotate lzop memtest86+ modemmanager ntfs-3g p7zip reiserfsprogs rsync squashfs-tools syslinux tcl unrar unzip usb_modeswitch virtualbox-guest-utils zip gvfs cbatticon xdg-utils"
 ARCHBANG_ICONS="gnome-icon-theme hicolor-icon-theme gnome-icon-theme-symbolic" 
 CODECS="a52dec faac faad2 jasper lame libdca libdv libmad libmpeg2 libtheora libvorbis libxv wavpack x264 xvidcore gstreamer"
 SOUND="volumeicon alsa-utils pulseaudio alsa-firmware alsa-oss"
@@ -332,9 +332,9 @@ genfstab -U /mnt >> /mnt/etc/fstab
 
 mkdir -p /mnt${ARCHBANGRETRO_FOLDER}
 cd /mnt${ARCHBANGRETRO_FOLDER}
-wget https://sourceforge.net/projects/archbangretro/files/archbangretro.tar
-tar -xvf archbangretro.tar
-rm -f archbangretro.tar
+wget https://sourceforge.net/projects/archbangretro/files/archbangretro.tar.xz
+tar -xvf archbangretro.tar.xz
+rm -f archbangretro.tar.xz
 
 # +-+-+-+-+-+-+-
 # CHROOT SCRIPT
@@ -438,6 +438,7 @@ EOT
 mkdir -p /etc/skel/.config
 mkdir -p /etc/skel/.icons
 mkdir -p /etc/skel/.local/share/file-manager/actions/
+mkdir -p /etc/skel/.mozilla
 
 cp ${ARCHBANGRETRO_FOLDER}/skel/conkyrc /etc/skel/.conkyrc
 cp ${ARCHBANGRETRO_FOLDER}/skel/conkyrc1 /etc/skel/.conkyrc1
@@ -446,6 +447,7 @@ cp ${ARCHBANGRETRO_FOLDER}/skel/bashrc /etc/skel/.bashrc
 cp -R ${ARCHBANGRETRO_FOLDER}/skel/CONFIG/* /etc/skel/.config/
 cp ${ARCHBANGRETRO_FOLDER}/skel/gtkrc-2.0 /etc/skel/.gtkrc-2.0
 cp ${ARCHBANGRETRO_FOLDER}/skel/local/terminal.desktop /etc/skel/.local/share/file-manager/actions/
+cp -R ${ARCHBANGRETRO_FOLDER}/skel/mozilla/* /etc/skel/.mozilla
 
 cat > "/etc/skel/.xinitrc" << "EOT"
 exec openbox-session
