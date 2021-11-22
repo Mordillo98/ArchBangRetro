@@ -191,26 +191,34 @@ printf "${GREEN}ROOT = ${CYAN}${DRIVE_PART3}\n\n"
 # launched too early.
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 
-countsleep "Automatic install will start in... " 5 
+countsleep "Automatic install will start in... " 15 
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 # INSTALL THE NEEDED DEPENDENCIES 
 # TO RUN THIS SCRIPT FROM ARCH LIVE CD
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
+printf "${CYAN}Updating archlinux's repos.\n${NC}"
 pacman -Sy > /dev/null
 
+printf "\n${WHITE}"
+
 if ! pacman -Qs dmidecode > /dev/null ; then
+	printf "Installing dmidecode...\n"
 	pacman -S dmidecode --noconfirm > /dev/null
 fi
 
 if ! pacman -Qs wget > /dev/null ; then
+	printf "Installing wget...\n"
 	pacman -S wget --noconfirm > /dev/null
 fi
 
 if ! pacman -Qs reflector > /dev/null ; then
+	printf "Installing reflector...\n"
 	pacman -S reflector --noconfirm > /dev/null
 fi
+
+printf "\n${NC}"
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 # ENABLE MIRRORS FROM $MIRROR_LINK
@@ -219,8 +227,6 @@ fi
 printf "${YELLOW}Setting up best mirrors from ${REFLECTOR_COUNTRY} for this live session.\n\n${NC}" 
 
 reflector --country ${REFLECTOR_COUNTRY} --age 12 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
-
-pacman -Sy > /dev/null
 
 countsleep "Partitioning the disk will start in... " 5
 
@@ -302,7 +308,7 @@ mount ${DRIVE_PART1} /mnt/boot
 
 EDITOR="vim nano"
 PYGTK_DEPENDENCIES="python2-cairo python2-numpy"
-CATFISH_DEPENDENCIES="dbus-python python2 python2-xdg"
+CATFISH_DEPENDENCIES="dbus-python python2 python-pyxdg"
 DEPENDENCIES="go gnome-themes-standard git wget intltool python-cairo python-gobject python-pillow libxft libxinerama gdk-pixbuf-xlib python-distutils-extra cmake"
 XORG="xorg-server xorg-xinit xorg-xkill"
 OPENBOX="openbox ttf-dejavu ttf-liberation"
@@ -335,6 +341,8 @@ cd /mnt${ARCHBANGRETRO_FOLDER}
 wget https://sourceforge.net/projects/archbangretro/files/archbangretro.tar.xz
 tar -xvf archbangretro.tar.xz
 rm -f archbangretro.tar.xz
+
+
 
 # +-+-+-+-+-+-+-
 # CHROOT SCRIPT
@@ -903,12 +911,27 @@ rm -rf /usr/share/themes/Flat-Remix-GTK-Yellow*
 # HARDINFO-GIT
 # +-+-+-+-+-+-+-+-+-+
 
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/hardinfo-git.git
-cd /home/${ARCH_USER}/hardinfo-git
-sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./hardinfo-git*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/hardinfo-git
+cd ${ARCHBANGRETRO_FOLDER}
+git clone https://github.com/Mordillo98/hardinfo-0.6-alpha
+cd hardinfo-0.6-alpha
+cmake -B build -S . \
+		-DCMAKE_BUILD_TYPE='Debug' \
+		-DCMAKE_INSTALL_PREFIX='/usr' \
+		-DCMAKE_INSTALL_LIBDIR='lib' \
+		-DHARDINFO_GTK3='ON' \
+		-DHARDINFO_DEBUG='$(usex debug 1 0)' \
+		-Wno-dev
+
+make -C build
+
+make -C build DESTDIR="$pkgdir" install
+
+# cd /home/${ARCH_USER}
+# sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/hardinfo-git.git
+# cd /home/${ARCH_USER}/hardinfo-git
+# sudo -u ${ARCH_USER} makepkg -s
+# pacman -U ./hardinfo-git*.pkg.tar.zst --noconfirm
+# rm -rf /home/${ARCH_USER}/hardinfo-git
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+
 # GNOME-DISK-UTILITY-3.4.1
@@ -1013,4 +1036,6 @@ EOF
 # DONE
 #
 
-
+echo ""
+echo "INSTALLATION COMPLETED SUCCESSFULLY !"
+echo ""
