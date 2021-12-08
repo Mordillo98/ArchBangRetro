@@ -896,16 +896,70 @@ sudo -u ${ARCH_USER} makepkg -s
 pacman -U ./flat-remix-gtk*.pkg.tar.zst --noconfirm
 rm -rf /home/${ARCH_USER}/flat-remix-gtk
 
-rm -rf /usr/share/themes/Flat-Remix-GTK-Blue-Dark-Solid
-rm -rf /usr/share/themes/Flat-Remix-GTK-Blue-Darker-Solid
-rm -rf /usr/share/themes/Flat-Remix-GTK-Blue-Darkest-NoBorder
-rm -rf /usr/share/themes/Flat-Remix-GTK-Blue-Darkest-Solid
-rm -rf /usr/share/themes/Flat-Remix-GTK-Blue-Darkest-Solid-NoBorder
+rm -rf /usr/share/themes/Flat-Remix-GTK-Blue-Dark-*
+rm -rf /usr/share/themes/Flat-Remix-GTK-Blue-Darke*
 rm -rf /usr/share/themes/Flat-Remix-GTK-Blue-Solid
+rm -rf /usr/share/themes/Flat-Remix-GTK-Blue-Light*
 
-rm -rf /usr/share/themes/Flat-Remix-GTK-Green*
-rm -rf /usr/share/themes/Flat-Remix-GTK-Red*
-rm -rf /usr/share/themes/Flat-Remix-GTK-Yellow*
+rm -rf /usr/share/themes/Flat-Remix-GTK-Green-Dark-*
+rm -rf /usr/share/themes/Flat-Remix-GTK-Green-Darke*
+rm -rf /usr/share/themes/Flat-Remix-GTK-Green-Solid
+rm -rf /usr/share/themes/Flat-Remix-GTK-Green-Light*
+
+rm -rf /usr/share/themes/Flat-Remix-GTK-Red-Dark-*
+rm -rf /usr/share/themes/Flat-Remix-GTK-Red-Darke*
+rm -rf /usr/share/themes/Flat-Remix-GTK-Red-Solid
+rm -rf /usr/share/themes/Flat-Remix-GTK-Red-Light*
+
+rm -rf /usr/share/themes/Flat-Remix-GTK-Yellow-Dark-*
+rm -rf /usr/share/themes/Flat-Remix-GTK-Yellow-Darke*
+rm -rf /usr/share/themes/Flat-Remix-GTK-Yellow-Solid
+rm -rf /usr/share/themes/Flat-Remix-GTK-Yellow-Light*
+
+rm -rf /usr/share/themes/Flat-Remix-GTK-Brown-Dark-*
+rm -rf /usr/share/themes/Flat-Remix-GTK-Brown-Darke*
+rm -rf /usr/share/themes/Flat-Remix-GTK-Brown-Solid
+rm -rf /usr/share/themes/Flat-Remix-GTK-Brown-Light*
+
+rm -rf /usr/share/themes/Flat-Remix-GTK-Cyan-Dark-*
+rm -rf /usr/share/themes/Flat-Remix-GTK-Cyan-Darke*
+rm -rf /usr/share/themes/Flat-Remix-GTK-Cyan-Solid
+rm -rf /usr/share/themes/Flat-Remix-GTK-Cyan-Light*
+
+rm -rf /usr/share/themes/Flat-Remix-GTK-Grey-Dark-*
+rm -rf /usr/share/themes/Flat-Remix-GTK-Grey-Darke*
+rm -rf /usr/share/themes/Flat-Remix-GTK-Grey-Solid
+rm -rf /usr/share/themes/Flat-Remix-GTK-Grey-Light*
+
+rm -rf /usr/share/themes/Flat-Remix-GTK-Magenta-Dark-*
+rm -rf /usr/share/themes/Flat-Remix-GTK-Magenta-Darke*
+rm -rf /usr/share/themes/Flat-Remix-GTK-Magenta-Solid
+rm -rf /usr/share/themes/Flat-Remix-GTK-Magenta-Light*
+
+rm -rf /usr/share/themes/Flat-Remix-GTK-Orange-Dark-*
+rm -rf /usr/share/themes/Flat-Remix-GTK-Orange-Darke*
+rm -rf /usr/share/themes/Flat-Remix-GTK-Orange-Solid
+rm -rf /usr/share/themes/Flat-Remix-GTK-Orange-Light*
+
+rm -rf /usr/share/themes/Flat-Remix-GTK-Brown-Dark-*
+rm -rf /usr/share/themes/Flat-Remix-GTK-Brown-Darke*
+rm -rf /usr/share/themes/Flat-Remix-GTK-Brown-Solid
+rm -rf /usr/share/themes/Flat-Remix-GTK-Brown-Light*
+
+rm -rf /usr/share/themes/Flat-Remix-GTK-Teal-Dark-*
+rm -rf /usr/share/themes/Flat-Remix-GTK-Teal-Darke*
+rm -rf /usr/share/themes/Flat-Remix-GTK-Teal-Solid
+rm -rf /usr/share/themes/Flat-Remix-GTK-Teal-Light*
+
+rm -rf /usr/share/themes/Flat-Remix-GTK-Violet-Dark-*
+rm -rf /usr/share/themes/Flat-Remix-GTK-Violet-Darke*
+rm -rf /usr/share/themes/Flat-Remix-GTK-Violet-Solid
+rm -rf /usr/share/themes/Flat-Remix-GTK-Violet-Light*
+
+rm -rf /usr/share/themes/Flat-Remix-GTK-White-Dark-*
+rm -rf /usr/share/themes/Flat-Remix-GTK-White-Darke*
+rm -rf /usr/share/themes/Flat-Remix-GTK-White-Solid
+rm -rf /usr/share/themes/Flat-Remix-GTK-White-Light*
 
 # +-+-+-+-+-+-+-+-+-+
 # HARDINFO-GIT
