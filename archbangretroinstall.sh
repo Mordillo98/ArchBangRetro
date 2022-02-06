@@ -469,7 +469,7 @@ useradd -m -G wheel -s /bin/bash $ARCH_USER
 
 echo "${ARCH_USER}:${USER_PSW}" | chpasswd
 
-sed -i 's/# %wheel ALL=(ALL) NOPASSWD: ALL/%wheel ALL=(ALL) NOPASSWD: ALL/' /etc/sudoers
+sed -i 's/# %wheel ALL=(ALL:ALL) NOPASSWD: ALL/%wheel ALL=(ALL:ALL) NOPASSWD: ALL/' /etc/sudoers
 
 # +-+-+-+-+-+
 # ALPM-HOOKS
