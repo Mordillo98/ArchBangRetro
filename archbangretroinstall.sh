@@ -535,7 +535,8 @@ mkdir -p /etc/pacman.d/hooks
    # +-+-+-+-+-+-+-+-+-+-+-+
 
    printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/network-manager-applet_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/network-manager-applet_install.hook
-   printf "cp ${ARCHBANGRETRO_FOLDER}/applications/nm-connection-editor.desktop /usr/share/applications/" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/network-manager-applet_install.sh
+   printf "cp ${ARCHBANGRETRO_FOLDER}/applications/nm-connection-editor.desktop /usr/share/applications/\n" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/network-manager-applet_install.sh
+   printf "sed -i 's/Exec=nm-applet/Exec=nm-applet --sm-disable/g' /etc/xdg/autostart/nm-applet.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/network-manager-applet_install.sh
 
    # +-+-+-+-+-+-+-+-+-+
    # GNOME-DISK-UTILITY
@@ -625,7 +626,13 @@ mkdir -p /etc/pacman.d/hooks
    # +-+-+-+-+-+
 
    printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/volumeicon_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/volumeicon_install.hook
+   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/volumeicon_uninstall.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/volumeicon_uninstall.hook
+
+   printf "cp ${ARCHBANGRETRO_FOLDER}/applications/volumeicon.desktop /etc/xdg/autostart/\n" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/volumeicon_install.sh
    printf "rm /usr/share/applications/volumeicon.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/volumeicon_install.sh
+
+   printf "rm /etc/xdg/autostart/volumeicon.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/volumeicon_uninstall.sh
+
 
    # +-+-+-+
    # LIBGDA
@@ -641,6 +648,15 @@ mkdir -p /etc/pacman.d/hooks
 
    printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/gmrun_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/gmrun_install.hook
    printf "rm /usr/share/applications/gmrun.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/gmrun_install.sh
+
+   # +-+-+-+-+-+-+-+-+-+
+   # XFCE4-NOTIFYD
+   # +-+-+-+-+-+-+-+-+-+
+
+   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/xfce4-notifyd_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/xfce4-notifyd_install.hook
+   printf "gawk -i inplace '!" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/xfce4-notifyd_install.sh
+   printf "/OnlyShowIn/' /etc/xdg/autostart/xfce4-notifyd.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/xfce4-notifyd_install.sh
+
 
 cp -R ${ARCHBANGRETRO_FOLDER}/HOOKS/* /etc/pacman.d/hooks/ 
 
@@ -896,6 +912,8 @@ sudo -u ${ARCH_USER} makepkg -s
 pacman -U ./flat-remix-gtk*.pkg.tar.zst --noconfirm
 rm -rf /home/${ARCH_USER}/flat-remix-gtk
 
+rm -rf /usr/share/themes/Flat-Remix-GTK-Black-*
+
 rm -rf /usr/share/themes/Flat-Remix-GTK-Blue-Dark-*
 rm -rf /usr/share/themes/Flat-Remix-GTK-Blue-Darke*
 rm -rf /usr/share/themes/Flat-Remix-GTK-Blue-Solid
@@ -1061,11 +1079,25 @@ chmod +x /usr/lib/firefox/distribution/extensions/*
 
 cat ${ARCHBANGRETRO_FOLDER}/profile/profile >> /etc/profile
 
+#+-+-+-+-+-+-
+# NM-APPLET
+#+-+-+-+-+-+-
+
+sed -i 's/Exec=nm-applet/Exec=nm-applet --sm-disable/g' /etc/xdg/autostart/nm-applet.desktop
+
+#+-+-+-+-+-+-+-+
+# XFCE4-NOTIFYD
+#+-+-+-+-+-+-+-+
+
+gawk -i inplace '!/OnlyShowIn/' /etc/xdg/autostart/xfce4-notifyd.desktop
+
 # +-+-+-+-+-+-+-+-+-+-+
 # CLEANUP OPENBOX MENU
 # +-+-+-+-+-+-+-+-+-+-+
 
 cp -R ${ARCHBANGRETRO_FOLDER}/applications /usr/share/
+
+cp /usr/share/applications/volumeicon.desktop /etc/xdg/autostart
 
 rm /usr/share/applications/pcmanfm-desktop-pref.desktop
 rm /usr/share/applications/avahi-discover.desktop
