@@ -208,11 +208,6 @@ if ! pacman -Qs dmidecode > /dev/null ; then
 	pacman -S dmidecode --noconfirm > /dev/null
 fi
 
-if ! pacman -Qs wget > /dev/null ; then
-	printf "Installing wget...\n"
-	pacman -S wget --noconfirm > /dev/null
-fi
-
 if ! pacman -Qs reflector > /dev/null ; then
 	printf "Installing reflector...\n"
 	pacman -S reflector --noconfirm > /dev/null
@@ -309,17 +304,19 @@ mount ${DRIVE_PART1} /mnt/boot
 EDITOR="vim nano"
 PYGTK_DEPENDENCIES="python2-cairo python2-numpy"
 CATFISH_DEPENDENCIES="dbus-python python2 python-pyxdg"
-DEPENDENCIES="go gnome-themes-standard git wget intltool python-cairo python-gobject python-pillow libxft libxinerama gdk-pixbuf-xlib python-distutils-extra cmake"
+DEPENDENCIES="go gnome-themes-standard git intltool python-cairo python-gobject python-pillow libxft libxinerama gdk-pixbuf-xlib python-distutils-extra cmake"
 XORG="xorg-server xorg-xinit xorg-xkill"
 OPENBOX="openbox ttf-dejavu ttf-liberation"
 OPENBOX_MENU="glib2 gtk2 menu-cache gnome-menus lxmenu-data"
-ARCHBANG_APPS="reflector lxterminal lxappearance lxappearance-obconf lxinput leafpad gucharmap pcmanfm galculator parcellite xarchiver shotwell epdfview htop arandr obconf tint2 conky xcompmgr nitrogen scrot exo gnome-mplayer xfburn libfm-gtk2 gmrun slim packer arj cronie dialog dnsutils gnome-keyring gsimplecal gtk-engine-murrine gtk-engines inetutils jfsutils logrotate lzop memtest86+ modemmanager ntfs-3g p7zip reiserfsprogs rsync squashfs-tools syslinux tcl unrar unzip usb_modeswitch virtualbox-guest-utils zip gvfs cbatticon xdg-utils"
+ARCHBANG_APPS="reflector lxterminal lxappearance lxappearance-obconf lxinput leafpad gucharmap pcmanfm galculator parcellite xarchiver shotwell epdfview htop arandr obconf tint2 conky xcompmgr nitrogen scrot exo gnome-mplayer xfburn libfm-gtk2 gmrun slim packer arj cronie dialog dnsutils gnome-keyring gsimplecal gtk-engine-murrine gtk-engines inetutils jfsutils logrotate lzop memtest86+ modemmanager ntfs-3g p7zip reiserfsprogs rsync squashfs-tools syslinux tcl unrar unzip usb_modeswitch zip gvfs cbatticon xdg-utils"
 ARCHBANG_ICONS="gnome-icon-theme hicolor-icon-theme gnome-icon-theme-symbolic" 
 CODECS="a52dec faac faad2 jasper lame libdca libdv libmad libmpeg2 libtheora libvorbis libxv wavpack x264 xvidcore gstreamer"
 SOUND="volumeicon alsa-utils pulseaudio alsa-firmware alsa-oss"
 NETWORK="network-manager-applet broadcom-wl xfce4-notifyd"
 BROWSER="firefox"
-XF86="xf86-input-elographics xf86-input-evdev xf86-input-libinput xf86-input-synaptics xf86-input-vmmouse xf86-input-void xf86-input-wacom xf86-video-amdgpu xf86-video-ati xf86-video-dummy xf86-video-fbdev xf86-video-intel xf86-video-nouveau xf86-video-openchrome xf86-video-sisusb xf86-video-vesa xf86-video-vmware xf86-video-voodoo xf86-video-qxl"
+XF86="xf86-input-elographics xf86-input-evdev xf86-input-libinput xf86-input-synaptics xf86-input-vmmouse xf86-input-void xf86-input-wacom"
+
+# XF86="xf86-input-elographics xf86-input-evdev xf86-input-libinput xf86-input-synaptics xf86-input-vmmouse xf86-input-void xf86-input-wacom xf86-video-amdgpu xf86-video-ati xf86-video-dummy xf86-video-fbdev xf86-video-intel xf86-video-nouveau xf86-video-openchrome xf86-video-sisusb xf86-video-vesa xf86-video-vmware xf86-video-voodoo xf86-video-qxl"
 
 pacstrap /mnt base base-devel linux linux-firmware man-db man-pages texinfo grub efibootmgr $EDITOR $DEPENDENCIES $PYGTK_DEPENDENCIES $CATFISH_DEPENDENCIES $XORG $OPENBOX $OPENBOX_MENU $ARCHBANG_APPS $ARCHBANG_ICONS $CODECS $SOUND $NETWORK $BROWSER $XF86
 
@@ -338,7 +335,7 @@ genfstab -U /mnt >> /mnt/etc/fstab
 
 mkdir -p /mnt${ARCHBANGRETRO_FOLDER}
 cd /mnt${ARCHBANGRETRO_FOLDER}
-wget https://sourceforge.net/projects/archbangretro/files/archbangretro.tar.xz
+curl -fLO https://sourceforge.net/projects/archbangretro/files/archbangretro.tar.xz
 tar -xvf archbangretro.tar.xz
 rm -f archbangretro.tar.xz
 
@@ -721,7 +718,7 @@ rm -rf /home/${ARCH_USER}/python2-gobject2
 # +-+-+-+-+
 
 cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} wget https://archive.archlinux.org/packages/d/deadbeef/deadbeef-1.8.4-1-x86_64.pkg.tar.zst
+sudo -u ${ARCH_USER} curl -fLO https://archive.archlinux.org/packages/d/deadbeef/deadbeef-1.8.4-1-x86_64.pkg.tar.zst
 pacman -U ./deadbeef*.pkg.tar.zst --noconfirm
 rm -f deadbeef*.pkg.tar.zst
 
@@ -730,7 +727,7 @@ rm -f deadbeef*.pkg.tar.zst
 # +-+-+-+-+
 
 cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} wget https://archive.archlinux.org/packages/l/libglade/libglade-2.6.4-7-x86_64.pkg.tar.zst
+sudo -u ${ARCH_USER} curl -fLO https://archive.archlinux.org/packages/l/libglade/libglade-2.6.4-7-x86_64.pkg.tar.zst
 pacman -U ./libglade*.pkg.tar.zst --noconfirm
 rm -f libglade*.pkg.tar.zst
 
@@ -751,7 +748,7 @@ rm -rf /home/${ARCH_USER}/pygtk
 
 mkdir /home/${ARCH_USER}/python2-dbus
 cd /home/${ARCH_USER}/python2-dbus
-wget https://archive.archlinux.org/repos/2021/02/28/extra/os_x86_64/python2-dbus-1.2.16-3-x86_64.pkg.tar.zst
+curl -fLO https://archive.archlinux.org/repos/2021/02/28/extra/os_x86_64/python2-dbus-1.2.16-3-x86_64.pkg.tar.zst
 pacman -U ./python2-dbus*.pkg.tar.zst --noconfirm
 rm -rf /home/${ARCH_USER}/python2-dbus
 
@@ -1012,9 +1009,35 @@ make -C build DESTDIR="$pkgdir" install
 cd /home/${ARCH_USER}
 mkdir gnome-disk-utility-3.4.1
 cd /home/${ARCH_USER}/gnome-disk-utility-3.4.1
-wget https://sourceforge.net/projects/archbangretro/files/gnome-disk-utility-3.4.1-3.4.1-1-x86_64.pkg.tar.zst
+curl -fLO https://sourceforge.net/projects/archbangretro/files/gnome-disk-utility-3.4.1-3.4.1-1-x86_64.pkg.tar.zst
 pacman -U ./gnome-disk-utility-3.4.1*.pkg.tar.zst --noconfirm
 rm -rf /home/${ARCH_USER}/gnome-disk-utility-3.4.1
+
+# +-+-+-+-+-+-+
+# MHWD-MANJARO
+# +-+-+-+-+-+-+
+
+cd /home/${ARCH_USER}
+curl -fLO https://sourceforge.net/projects/archbangretro/files/mhwd-manjaro.tar.xz
+tar -xvf mhwd-manjaro.tar.xz
+cd /home/${ARCH_USER}/mhwd-manjaro
+
+pacman -U ./v86d-0.1.10-5.1-x86_64.pkg.tar.xz --noconfirm
+pacman -U ./mhwd-amdgpu-19.1.0-1-any.pkg.tar.zst --noconfirm
+pacman -U ./mhwd-ati-19.1.0-1-any.pkg.tar.zst --noconfirm
+pacman -U ./mhwd-nvidia-390xx-390.147-2-any.pkg.tar.zst --noconfirm
+pacman -U ./mhwd-nvidia-470xx-470.103.01-1-any.pkg.tar.zst --noconfirm
+pacman -U ./mhwd-nvidia-510.54-1-any.pkg.tar.zst --noconfirm
+pacman -U ./mhwd-db-0.6.5-21-x86_64.pkg.tar.zst --noconfirm
+pacman -U ./mhwd-0.6.5-2-x86_64.pkg.tar.zst --noconfirm
+
+cd /home/${ARCH_USER}
+rm /home/${ARCH_USER}/mhwd-manjaro.tar.xz
+rm -rf /home/${ARCH_USER}/mhwd-manjaro
+
+mhwd -a pci free 0300
+
+pacman -Rns --noconfirm $(pacman -Qq | grep xf86-video*)
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 # SLIM THEMES AND CONFIGURATION
