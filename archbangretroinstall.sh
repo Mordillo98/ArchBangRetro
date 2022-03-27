@@ -315,10 +315,12 @@ SOUND="volumeicon alsa-utils pulseaudio alsa-firmware alsa-oss"
 NETWORK="network-manager-applet broadcom-wl xfce4-notifyd"
 BROWSER="firefox"
 XF86="xf86-input-elographics xf86-input-evdev xf86-input-libinput xf86-input-synaptics xf86-input-vmmouse xf86-input-void xf86-input-wacom"
+CALAMARES="qt5 kpmcore yaml-cpp boost extra-cmake-modules kiconthemes"
+
 
 # XF86="xf86-input-elographics xf86-input-evdev xf86-input-libinput xf86-input-synaptics xf86-input-vmmouse xf86-input-void xf86-input-wacom xf86-video-amdgpu xf86-video-ati xf86-video-dummy xf86-video-fbdev xf86-video-intel xf86-video-nouveau xf86-video-openchrome xf86-video-sisusb xf86-video-vesa xf86-video-vmware xf86-video-voodoo xf86-video-qxl"
 
-pacstrap /mnt base base-devel linux linux-firmware man-db man-pages texinfo grub efibootmgr $EDITOR $DEPENDENCIES $PYGTK_DEPENDENCIES $CATFISH_DEPENDENCIES $XORG $OPENBOX $OPENBOX_MENU $ARCHBANG_APPS $ARCHBANG_ICONS $CODECS $SOUND $NETWORK $BROWSER $XF86
+pacstrap /mnt base base-devel linux linux-firmware man-db man-pages texinfo grub efibootmgr $EDITOR $DEPENDENCIES $PYGTK_DEPENDENCIES $CATFISH_DEPENDENCIES $XORG $OPENBOX $OPENBOX_MENU $ARCHBANG_APPS $ARCHBANG_ICONS $CODECS $SOUND $NETWORK $BROWSER $XF86 $CALAMARES
 
 # +-+-+-+-+-+-+-+-+
 # SETUP /ETC/FSTAB
@@ -355,6 +357,11 @@ printf "\n${YELLOW}Setting up best mirrors from ${REFLECTOR_COUNTRY} for ArchBan
 
 reflector --country ${REFLECTOR_COUNTRY} --age 12 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
 
+# +-+-+-+-+-+-+-+-
+# ENABLE MULTILIB
+# +-+-+-+-+-+-+-+-
+
+sed -i "/\[multilib\]/,/Include/"'s/^#//' /etc/pacman.conf
 pacman -Sy > /dev/null
 
 # +-+-+-+-+-+ 
@@ -1037,7 +1044,7 @@ rm -rf /home/${ARCH_USER}/mhwd-manjaro
 
 mhwd -a pci free 0300
 
-pacman -Rns --noconfirm $(pacman -Qq | grep xf86-video*)
+# pacman -Rns --noconfirm $(pacman -Qq | grep xf86-video*)
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 # SLIM THEMES AND CONFIGURATION
