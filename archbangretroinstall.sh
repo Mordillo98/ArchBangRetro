@@ -309,7 +309,7 @@ XORG="xorg-server xorg-xinit xorg-xkill"
 OPENBOX="openbox ttf-dejavu ttf-liberation"
 OPENBOX_MENU="glib2 gtk2 menu-cache gnome-menus lxmenu-data"
 ARCHBANG_APPS="reflector lxterminal lxappearance lxappearance-obconf lxinput leafpad gucharmap pcmanfm galculator parcellite xarchiver shotwell epdfview htop arandr obconf tint2 conky xcompmgr nitrogen scrot exo gnome-mplayer xfburn libfm-gtk2 gmrun slim packer arj cronie dialog dnsutils gnome-keyring gsimplecal gtk-engine-murrine gtk-engines inetutils jfsutils logrotate lzop memtest86+ modemmanager ntfs-3g p7zip reiserfsprogs rsync squashfs-tools syslinux tcl unrar unzip usb_modeswitch zip gvfs cbatticon xdg-utils"
-ARCHBANG_ICONS="gnome-icon-theme hicolor-icon-theme gnome-icon-theme-symbolic" 
+ARCHBANG_ICONS="gtk-update-icon-cache hicolor-icon-theme librsvg icon-naming-utils intltool" 
 CODECS="a52dec faac faad2 jasper lame libdca libdv libmad libmpeg2 libtheora libvorbis libxv wavpack x264 xvidcore gstreamer"
 SOUND="volumeicon alsa-utils pulseaudio alsa-firmware alsa-oss"
 NETWORK="network-manager-applet broadcom-wl xfce4-notifyd"
@@ -663,6 +663,31 @@ mkdir -p /etc/pacman.d/hooks
 
 
 cp -R ${ARCHBANGRETRO_FOLDER}/HOOKS/* /etc/pacman.d/hooks/ 
+
+
+# +-+-+-+-+-+-+-+-+-+-+-+-+-
+# GNOME-ICON-THEME-SYMBOLIC (dependency for gnome-icon-theme)
+# +-+-+-+-+-+-+-+-+-+-+-+-+-
+
+cd /home/${ARCH_USER}
+sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/gnome-icon-theme-symbolic
+cd /home/${ARCH_USER}/gnome-icon-theme-symbolic
+sudo -u ${ARCH_USER} makepkg -s
+pacman -U ./gnome-icon-theme-symbolic*.pkg.tar.zst --noconfirm
+rm -rf /home/${ARCH_USER}/gnome-icon-theme-symbolic
+
+
+# +-+-+-+-+-+-+-+-+
+# GNOME-ICON-THEME
+# +-+-+-+-+-+-+-+-+
+
+cd /home/${ARCH_USER}
+sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/gnome-icon-theme.git
+cd /home/${ARCH_USER}/gnome-icon-theme
+sudo -u ${ARCH_USER} makepkg -s
+pacman -U ./gnome-icon-theme*.pkg.tar.zst --noconfirm
+rm -rf /home/${ARCH_USER}/gnome-icon-theme
+
 
 # +-+-
 # YAY
@@ -1145,6 +1170,11 @@ rm /usr/share/applications/nitrogen.desktop
 rm /usr/share/applications/lxinput.desktop
 rm /usr/share/applications/vim.desktop
 rm /usr/share/applications/gmrun.desktop
+rm /usr/share/applications/assistant.desktop
+rm /usr/share/applications/designer.desktop
+rm /usr/share/applications/linguist.desktop
+rm /usr/share/applications/qdbusviewer.desktop
+
 
 EOF
 
