@@ -191,7 +191,7 @@ printf "${GREEN}ROOT = ${CYAN}${DRIVE_PART3}\n\n"
 # launched too early.
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 
-countsleep "Automatic install will start in... " 15 
+countsleep "Automatic install will start in... " 30 
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 # INSTALL THE NEEDED DEPENDENCIES 
@@ -221,7 +221,7 @@ printf "\n${NC}"
 
 printf "${YELLOW}Setting up best mirrors from ${REFLECTOR_COUNTRY} for this live session.\n\n${NC}" 
 
-reflector --country ${REFLECTOR_COUNTRY} --age 12 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
+reflector --country ${REFLECTOR_COUNTRY} --sort score --score 5 --protocol https --save /etc/pacman.d/mirrorlist
 
 countsleep "Partitioning the disk will start in... " 5
 
@@ -302,9 +302,8 @@ mount ${DRIVE_PART1} /mnt/boot
 # LibGlade
 
 EDITOR="vim nano"
-PYGTK_DEPENDENCIES="python2-cairo python2-numpy"
 CATFISH_DEPENDENCIES="dbus-python python2 python-pyxdg"
-DEPENDENCIES="go gnome-themes-standard git intltool python-cairo python-gobject python-pillow libxft libxinerama gdk-pixbuf-xlib python-distutils-extra cmake"
+DEPENDENCIES="go gnome-themes-standard git intltool python-cairo python-gobject python-pillow libxft libxinerama gdk-pixbuf-xlib python-distutils-extra cmake cblas lapack python2-setuptools gcc-fortran cython2"
 XORG="xorg-server xorg-xinit xorg-xkill"
 OPENBOX="openbox ttf-dejavu ttf-liberation"
 OPENBOX_MENU="glib2 gtk2 menu-cache gnome-menus lxmenu-data"
@@ -320,7 +319,7 @@ CALAMARES="qt5 kpmcore yaml-cpp boost extra-cmake-modules kiconthemes"
 
 # XF86="xf86-input-elographics xf86-input-evdev xf86-input-libinput xf86-input-synaptics xf86-input-vmmouse xf86-input-void xf86-input-wacom xf86-video-amdgpu xf86-video-ati xf86-video-dummy xf86-video-fbdev xf86-video-intel xf86-video-nouveau xf86-video-openchrome xf86-video-sisusb xf86-video-vesa xf86-video-vmware xf86-video-voodoo xf86-video-qxl"
 
-pacstrap /mnt base base-devel linux linux-firmware man-db man-pages texinfo grub efibootmgr $EDITOR $DEPENDENCIES $PYGTK_DEPENDENCIES $CATFISH_DEPENDENCIES $XORG $OPENBOX $OPENBOX_MENU $ARCHBANG_APPS $ARCHBANG_ICONS $CODECS $SOUND $NETWORK $BROWSER $XF86 $CALAMARES
+pacstrap /mnt base base-devel linux linux-firmware man-db man-pages texinfo grub efibootmgr $EDITOR $DEPENDENCIES $CATFISH_DEPENDENCIES $XORG $OPENBOX $OPENBOX_MENU $ARCHBANG_APPS $ARCHBANG_ICONS $CODECS $SOUND $NETWORK $BROWSER $XF86 $CALAMARES
 
 # +-+-+-+-+-+-+-+-+
 # SETUP /ETC/FSTAB
@@ -762,6 +761,28 @@ cd /home/${ARCH_USER}
 sudo -u ${ARCH_USER} curl -fLO https://archive.archlinux.org/packages/l/libglade/libglade-2.6.4-7-x86_64.pkg.tar.zst
 pacman -U ./libglade*.pkg.tar.zst --noconfirm
 rm -f libglade*.pkg.tar.zst
+
+# +-+-+-+-+-+-+-
+# PYTHON2-CAIRO (dependency for PYGTK)
+# +-+-+-+-+-+-+-
+
+cd /home/${ARCH_USER}
+sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/python2-cairo.git
+cd /home/${ARCH_USER}/python2-cairo
+sudo -u ${ARCH_USER} makepkg -s
+pacman -U ./python2-cairo*.pkg.tar.zst --noconfirm
+rm -rf /home/${ARCH_USER}/python2-cairo
+
+# +-+-+-+-+-+-+-
+# PYTHON2-NUMPY (dependency for PYGTK)
+# +-+-+-+-+-+-+-
+
+cd /home/${ARCH_USER}
+sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/python2-numpy.git
+cd /home/${ARCH_USER}/python2-numpy
+sudo -u ${ARCH_USER} makepkg -s
+pacman -U ./python2-numpy*.pkg.tar.zst --noconfirm
+rm -rf /home/${ARCH_USER}/python2-numpy
 
 # +-+-+-
 # PYGTK (dependency for catfish-python2 and obkey)
