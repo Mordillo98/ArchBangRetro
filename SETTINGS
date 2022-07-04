@@ -46,3 +46,14 @@ NC='\033[0m'
 
 ARCHBANGRETRO_FOLDER=/opt/archbangretro
 
+
+# +-+-+-+-+-+-+-+-
+# NVIDIA
+#
+# Decide if we install the nvidia-340xx driver
+# Answer should be "YES" or "NO".
+#
+# +-+-+-+-+-+-+-+-
+ 
+NVIDIA="NO"
+NVIDIA_LEGACY="NO"

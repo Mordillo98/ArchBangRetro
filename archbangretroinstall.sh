@@ -36,13 +36,6 @@ function make_swap_size () {
   SWAP_SIZE=${physical_memory%.*}
   SWAP_SIZE=$((SWAP_SIZE+1))
   SWAP_SIZE=$((SWAP_SIZE * 1024))
-
-  if [ ${FIRMWARE} = "BIOS" ]; then
-    SWAP_SIZE=$((SWAP_SIZE + 2176))
-  else 
-    SWAP_SIZE=$((SWAP_SIZE + 129))
-  fi
-
 }
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-
@@ -171,6 +164,8 @@ printf "${GREEN}ARCH_USER   = ${CYAN}${ARCH_USER}\n"
 printf "${GREEN}USER_PSW    = ${CYAN}${USER_PSW}\n"
 printf "${GREEN}ROOT_PSW    = ${CYAN}${ROOT_PSW}\n\n"
 printf "${GREEN}MIRRORS COUNTRY = ${CYAN}${REFLECTOR_COUNTRY}\n\n"
+printf "${GREEN}NVIDIA        = ${CYAN}${NVIDIA}\n"
+printf "${GREEN}NVIDIA_LEGACY = ${CYAN}${NVIDIA_LEGACY}\n\n"
 
 printf "${WHITE}*********************************************${NC}\n\n"
 
@@ -200,8 +195,6 @@ countsleep "Automatic install will start in... " 30
 
 printf "${CYAN}Updating archlinux's repos.\n${NC}"
 pacman -Sy > /dev/null
-
-printf "\n${WHITE}"
 
 if ! pacman -Qs dmidecode > /dev/null ; then
 	printf "Installing dmidecode...\n"
@@ -319,7 +312,7 @@ CALAMARES="qt5 kpmcore yaml-cpp boost extra-cmake-modules kiconthemes"
 
 # XF86="xf86-input-elographics xf86-input-evdev xf86-input-libinput xf86-input-synaptics xf86-input-vmmouse xf86-input-void xf86-input-wacom xf86-video-amdgpu xf86-video-ati xf86-video-dummy xf86-video-fbdev xf86-video-intel xf86-video-nouveau xf86-video-openchrome xf86-video-sisusb xf86-video-vesa xf86-video-vmware xf86-video-voodoo xf86-video-qxl"
 
-pacstrap /mnt base base-devel linux linux-firmware man-db man-pages texinfo grub efibootmgr $EDITOR $DEPENDENCIES $CATFISH_DEPENDENCIES $XORG $OPENBOX $OPENBOX_MENU $ARCHBANG_APPS $ARCHBANG_ICONS $CODECS $SOUND $NETWORK $BROWSER $XF86 $CALAMARES
+pacstrap /mnt base base-devel linux-lts linux-lts-headers linux-firmware man-db man-pages texinfo grub efibootmgr $EDITOR $DEPENDENCIES $CATFISH_DEPENDENCIES $XORG $OPENBOX $OPENBOX_MENU $ARCHBANG_APPS $ARCHBANG_ICONS $CODECS $SOUND $NETWORK $BROWSER $XF86 $CALAMARES
 
 # +-+-+-+-+-+-+-+-+
 # SETUP /ETC/FSTAB
@@ -340,21 +333,17 @@ curl -fLO https://sourceforge.net/projects/archbangretro/files/archbangretro.tar
 tar -xvf archbangretro.tar.xz
 rm -f archbangretro.tar.xz
 
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
+# COPYING MIRROR LIST TO ARCHBANGRETRO
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 
+cp /etc/pacman.d/mirrorlist /mnt/etc/pacman.d/
 
 # +-+-+-+-+-+-+-
 # CHROOT SCRIPT
 # +-+-+-+-+-+-+-
 
 arch-chroot /mnt /bin/bash << EOF
-
-# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-# ENABLE MIRRORS FROM $MIRROR_LINK
-# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
-printf "\n${YELLOW}Setting up best mirrors from ${REFLECTOR_COUNTRY} for ArchBangRetro...\n\n${NC}"
-
-reflector --country ${REFLECTOR_COUNTRY} --age 12 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
 
 # +-+-+-+-+-+-+-+-
 # ENABLE MULTILIB
@@ -1088,9 +1077,33 @@ cd /home/${ARCH_USER}
 rm /home/${ARCH_USER}/mhwd-manjaro.tar.xz
 rm -rf /home/${ARCH_USER}/mhwd-manjaro
 
-mhwd -a pci free 0300
 
-# pacman -Rns --noconfirm $(pacman -Qq | grep xf86-video*)
+if [ ${NVIDIA} = "YES" ]; then
+  
+  if [ ${NVIDIA_LEGACY} = "YES" ]; then
+     
+     cd /home/${ARCH_USER}
+     sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/nvidia-340xx-utils.git
+     cd /home/${ARCH_USER}/nvidia-340xx-utils
+     sudo -u ${ARCH_USER} makepkg -s
+     pacman -U ./nvidia-340xx-utils*.pkg.tar.zst --noconfirm
+     rm -rf /home/${ARCH_USER}/nvidia-340xx-utils
+     
+     cd /home/${ARCH_USER}
+     sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/nvidia-340xx-lts.git
+     cd /home/${ARCH_USER}/nvidia-340xx-lts
+     sudo -u ${ARCH_USER} makepkg -s
+     pacman -U ./nvidia-340xx-lts*.pkg.tar.zst --noconfirm --overwrite=*
+     rm -rf /home/${ARCH_USER}/nvidia-340xx-lts
+
+     cp ${ARCHBANGRETRO_FOLDER}/nvidia/30-nvidia-ignoreabi.conf /etc/X11/xorg.conf.d/
+  else 
+     mhwd -a pci nonfree 0300
+  fi
+
+else 
+  mhwd -a pci free 0300
+fi
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 # SLIM THEMES AND CONFIGURATION
@@ -1195,7 +1208,7 @@ rm /usr/share/applications/assistant.desktop
 rm /usr/share/applications/designer.desktop
 rm /usr/share/applications/linguist.desktop
 rm /usr/share/applications/qdbusviewer.desktop
-
+rm /usr/share/applications/lstopo.desktop
 
 EOF
 
