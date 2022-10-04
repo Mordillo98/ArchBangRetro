@@ -295,8 +295,8 @@ mount ${DRIVE_PART1} /mnt/boot
 # LibGlade
 
 EDITOR="vim nano"
-CATFISH_DEPENDENCIES="dbus-python python2 python-pyxdg"
-DEPENDENCIES="go gnome-themes-standard git intltool python-cairo python-gobject python-pillow libxft libxinerama gdk-pixbuf-xlib python-distutils-extra cmake cblas lapack python2-setuptools gcc-fortran cython2"
+CATFISH_DEPENDENCIES="dbus-python python-pyxdg"
+DEPENDENCIES="go gnome-themes-standard git intltool python-cairo python-gobject python-pillow libxft libxinerama gdk-pixbuf-xlib python-distutils-extra cmake cblas lapack gcc-fortran"
 XORG="xorg-server xorg-xinit xorg-xkill"
 OPENBOX="openbox ttf-dejavu ttf-liberation"
 OPENBOX_MENU="glib2 gtk2 menu-cache gnome-menus lxmenu-data"
@@ -653,12 +653,43 @@ mkdir -p /etc/pacman.d/hooks
 cp -R ${ARCHBANGRETRO_FOLDER}/HOOKS/* /etc/pacman.d/hooks/ 
 
 
+
+# +-+-+-+-
+# PYTHON2
+# +-+-+-+-
+
+cd /home/${ARCH_USER}
+sudo -u ${ARCH_USER} curl -fLO https://archive.archlinux.org/packages/p/python2/python2-2.7.18-5-x86_64.pkg.tar.zst
+pacman -U ./python2*.pkg.tar.zst --noconfirm
+rm -f python2*.pkg.tar.zst
+
+# +-+-+-+-+-+-+-+-+-+
+# PYTHON2-SETUPTOOLS
+# +-+-+-+-+-+-+-+-+-+
+
+cd /home/${ARCH_USER}
+sudo -u ${ARCH_USER} curl -fLO https://archive.archlinux.org/packages/p/python2-setuptools/python2-setuptools-2:44.1.1-2-any.pkg.tar.zst
+pacman -U ./python2-setuptools*.pkg.tar.zst --noconfirm
+rm -f python2-setuptools*.pkg.tar.zst
+
+# +-+-+-+-+
+# CYTHON2
+# +-+-+-+-+
+
+cd /home/${ARCH_USER}
+sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/cython2.git
+cd /home/${ARCH_USER}/cython2
+sudo -u ${ARCH_USER} makepkg -s
+pacman -U ./cython2*.pkg.tar.zst --noconfirm
+rm -rf /home/${ARCH_USER}/cython2
+
+
 # +-+-+-+-+-+-+-+-+-+-+-+-+-
 # GNOME-ICON-THEME-SYMBOLIC (dependency for gnome-icon-theme)
 # +-+-+-+-+-+-+-+-+-+-+-+-+-
 
 cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/gnome-icon-theme-symbolic
+sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/gnome-icon-theme-symbolic.git
 cd /home/${ARCH_USER}/gnome-icon-theme-symbolic
 sudo -u ${ARCH_USER} makepkg -s
 pacman -U ./gnome-icon-theme-symbolic*.pkg.tar.zst --noconfirm
