@@ -240,10 +240,10 @@ if [ ${FIRMWARE} = "BIOS" ]; then
   parted -a optimal $DRIVE --script mklabel msdos
   parted -a optimal $DRIVE --script unit mib
 
-  parted -a optimal $DRIVE --script mkpart primary 2048 2176
+  parted -a optimal $DRIVE --script mkpart primary 2048 3072
   parted -a optimal $DRIVE --script set 1 boot on
 
-  parted -a optimal $DRIVE --script mkpart primary 2176 $SWAP_SIZE
+  parted -a optimal $DRIVE --script mkpart primary 3072 $SWAP_SIZE
 
   parted -a optimal $DRIVE --script mkpart primary $SWAP_SIZE -- -1
 
@@ -251,11 +251,11 @@ else
   parted -a optimal $DRIVE --script mklabel gpt
   parted -a optimal $DRIVE --script unit mib
 
-  parted -a optimal $DRIVE --script mkpart primary 1 129
+  parted -a optimal $DRIVE --script mkpart primary 1 1025
   parted -a optimal $DRIVE --script name 1 boot
   parted -a optimal $DRIVE --script set 1 boot on
 
-  parted -a optimal $DRIVE --script mkpart primary 129 $SWAP_SIZE
+  parted -a optimal $DRIVE --script mkpart primary 1025 $SWAP_SIZE
   parted -a optimal $DRIVE --script name 2 swap
 
   parted -a optimal $DRIVE --script mkpart primary $SWAP_SIZE -- -1
