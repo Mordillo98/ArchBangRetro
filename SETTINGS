@@ -6,7 +6,7 @@
 
 FIRMWARE="UEFI"                # Choose BIOS or UEFI
 
-DRIVE="/dev/sda"              # This drive will be formatted
+DRIVE="/dev/vda"              # This drive will be formatted
 DRIVE_PART1=${DRIVE}1         # boot partition
 DRIVE_PART2=${DRIVE}2         # swap partition
 DRIVE_PART3=${DRIVE}3         # root partition
@@ -22,7 +22,7 @@ ARCH_USER="archretrouser"
 USER_PSW="archretropsw"
 ROOT_PSW="archretroroot"
 
-REFLECTOR_COUNTRY="Canada"
+REFLECTOR_COUNTRY="United States"
 
 # +-+-+-+-+-+-
 # COLOR CODES

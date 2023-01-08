@@ -214,7 +214,7 @@ printf "\n${NC}"
 
 printf "${YELLOW}Setting up best mirrors from ${REFLECTOR_COUNTRY} for this live session.\n\n${NC}" 
 
-reflector --country ${REFLECTOR_COUNTRY} --sort score --score 5 --protocol https --save /etc/pacman.d/mirrorlist
+reflector --country "${REFLECTOR_COUNTRY}" --sort score --score 5 --protocol https --save /etc/pacman.d/mirrorlist
 
 countsleep "Partitioning the disk will start in... " 5
 
@@ -300,7 +300,7 @@ DEPENDENCIES="go gnome-themes-standard git intltool python-cairo python-gobject 
 XORG="xorg-server xorg-xinit xorg-xkill"
 OPENBOX="openbox ttf-dejavu ttf-liberation"
 OPENBOX_MENU="glib2 gtk2 menu-cache gnome-menus lxmenu-data"
-ARCHBANG_APPS="reflector lxterminal lxappearance lxappearance-obconf lxinput leafpad gucharmap pcmanfm galculator parcellite xarchiver shotwell epdfview htop arandr obconf tint2 conky xcompmgr nitrogen scrot exo gnome-mplayer xfburn libfm-gtk2 gmrun slim packer arj cronie dialog dnsutils gnome-keyring gsimplecal gtk-engine-murrine gtk-engines inetutils jfsutils logrotate lzop memtest86+ modemmanager ntfs-3g p7zip reiserfsprogs rsync squashfs-tools syslinux tcl unrar unzip usb_modeswitch zip gvfs cbatticon xdg-utils"
+ARCHBANG_APPS="catfish reflector lxterminal lxappearance lxappearance-obconf lxinput leafpad gucharmap pcmanfm galculator parcellite xarchiver shotwell epdfview htop arandr obconf tint2 conky xcompmgr nitrogen scrot exo gnome-mplayer xfburn libfm-gtk2 gmrun slim packer arj cronie dialog dnsutils gnome-keyring gsimplecal gtk-engine-murrine gtk-engines inetutils jfsutils logrotate lzop memtest86+ modemmanager ntfs-3g p7zip reiserfsprogs rsync squashfs-tools syslinux tcl unrar unzip usb_modeswitch zip gvfs cbatticon xdg-utils"
 ARCHBANG_ICONS="gtk-update-icon-cache hicolor-icon-theme librsvg icon-naming-utils intltool" 
 CODECS="a52dec faac faad2 jasper lame libdca libdv libmad libmpeg2 libtheora libvorbis libxv wavpack x264 xvidcore gstreamer"
 SOUND="volumeicon alsa-utils pulseaudio alsa-firmware alsa-oss"
@@ -494,6 +494,13 @@ mkdir -p /etc/pacman.d/hooks
    printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/shotwell_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/shotwell_install.hook
    printf "cp ${ARCHBANGRETRO_FOLDER}/applications/shotwell.desktop /usr/share/applications/" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/shotwell_install.sh
 
+   # +-+-+-+-+
+   # CATFISH
+   # +-+-+-+-+
+
+   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/catfish_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/catfish_install.hook
+   printf "cp ${ARCHBANGRETRO_FOLDER}/applications/org.xfce.Catfish.desktop /usr/share/applications/" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/catfish_install.sh
+  
    # +-+-+-+-
    # XFBURN
    # +-+-+-+-
@@ -904,28 +911,6 @@ cd /home/${ARCH_USER}/openbox-menu
 sudo -u ${ARCH_USER} makepkg -s
 pacman -U ./openbox-menu*.pkg.tar.zst --noconfirm
 rm -rf /home/${ARCH_USER}/openbox-menu
-
-# +-+-+-+-+-+-+-+-
-# CATFISH-PYTHON2
-# +-+-+-+-+-+-+-+-
-
-  #
-  # This was installed by dmenu2, so it needs to be removed
-  # for CATFISH to be installed successfully via pacman.
-  #
-
-  rm /usr/share/icons/hicolor/scalable/apps/catfish.svg 
-
-#
-# Install
-# 
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/catfish-python2.git
-cd /home/${ARCH_USER}/catfish-python2
-sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./catfish-python2*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/catfish-python2
 
 # +-+-+-+
 # FBXKB 
