@@ -6,7 +6,7 @@
 
 FIRMWARE="UEFI"                # Choose BIOS or UEFI
 
-DRIVE="/dev/vda"              # This drive will be formatted
+DRIVE="/dev/sda"              # This drive will be formatted
 DRIVE_PART1=${DRIVE}1         # boot partition
 DRIVE_PART2=${DRIVE}2         # swap partition
 DRIVE_PART3=${DRIVE}3         # root partition
@@ -22,7 +22,7 @@ ARCH_USER="archretrouser"
 USER_PSW="archretropsw"
 ROOT_PSW="archretroroot"
 
-REFLECTOR_COUNTRY="United States"
+REFLECTOR_COUNTRY="Canada"
 
 # +-+-+-+-+-+-
 # COLOR CODES
@@ -46,7 +46,6 @@ NC='\033[0m'
 
 ARCHBANGRETRO_FOLDER=/opt/archbangretro
 
-
 # +-+-+-+-+-+-+-+-
 # NVIDIA
 #
@@ -57,3 +56,8 @@ ARCHBANGRETRO_FOLDER=/opt/archbangretro
  
 NVIDIA="NO"
 NVIDIA_LEGACY="NO"
+
+# Define the URL of the file and its expected MD5 checksum
+
+FILE_URL=https://sourceforge.net/projects/archbangretro/files/archbangretro.tar.xz
+EXPECTED_MD5=c842726c2f353719e0c34987db12d25c
