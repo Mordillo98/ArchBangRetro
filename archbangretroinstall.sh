@@ -167,6 +167,8 @@ printf "${GREEN}MIRRORS COUNTRY = ${CYAN}${REFLECTOR_COUNTRY}\n\n"
 printf "${GREEN}NVIDIA        = ${CYAN}${NVIDIA}\n"
 printf "${GREEN}NVIDIA_LEGACY = ${CYAN}${NVIDIA_LEGACY}\n\n"
 
+printf "${GREEN}FILE_URL    = ${CYAN}${FILE_URL}\n\n"
+
 printf "${WHITE}*********************************************${NC}\n\n"
 
 printf "${RED}THIS WILL DESTROY ALL CONTENT OF ${WHITE}${BCK_RED}${DRIVE^^}${NC}${RED} !!!\n\n"
@@ -300,7 +302,7 @@ DEPENDENCIES="go gnome-themes-standard git intltool python-cairo python-gobject 
 XORG="xorg-server xorg-xinit xorg-xkill"
 OPENBOX="openbox ttf-dejavu ttf-liberation"
 OPENBOX_MENU="glib2 gtk2 menu-cache gnome-menus lxmenu-data"
-ARCHBANG_APPS="catfish reflector lxterminal lxappearance lxappearance-obconf lxinput leafpad gucharmap pcmanfm galculator parcellite xarchiver shotwell epdfview htop arandr obconf tint2 conky xcompmgr nitrogen scrot exo gnome-mplayer xfburn libfm-gtk2 gmrun slim packer arj cronie dialog dnsutils gnome-keyring gsimplecal gtk-engine-murrine gtk-engines inetutils jfsutils logrotate lzop memtest86+ modemmanager ntfs-3g p7zip reiserfsprogs rsync squashfs-tools syslinux tcl unrar unzip usb_modeswitch zip gvfs cbatticon xdg-utils"
+ARCHBANG_APPS="catfish reflector lxterminal lxappearance lxappearance-obconf lxinput leafpad gucharmap pcmanfm galculator parcellite xarchiver shotwell htop arandr obconf tint2 conky xcompmgr nitrogen scrot exo gnome-mplayer xfburn libfm-gtk2 gmrun slim packer arj cronie dialog dnsutils gnome-keyring gsimplecal gtk-engine-murrine gtk-engines inetutils jfsutils logrotate lzop memtest86+ modemmanager ntfs-3g p7zip reiserfsprogs rsync squashfs-tools syslinux tcl unrar unzip usb_modeswitch zip gvfs cbatticon xdg-utils"
 ARCHBANG_ICONS="gtk-update-icon-cache hicolor-icon-theme librsvg icon-naming-utils intltool" 
 CODECS="a52dec faac faad2 jasper lame libdca libdv libmad libmpeg2 libtheora libvorbis libxv wavpack x264 xvidcore gstreamer"
 SOUND="volumeicon alsa-utils pulseaudio alsa-firmware alsa-oss"
@@ -329,7 +331,24 @@ genfstab -U /mnt >> /mnt/etc/fstab
 
 mkdir -p /mnt${ARCHBANGRETRO_FOLDER}
 cd /mnt${ARCHBANGRETRO_FOLDER}
-curl -fLO https://sourceforge.net/projects/archbangretro/files/archbangretro.tar.xz
+
+# Download the file and compute its MD5 checksum
+
+printf "\n\nFILE_URL = ${FILE_URL}\n\n"
+
+curl -fLO "${FILE_URL}"
+ACTUAL_MD5=$(md5sum "$(basename "${FILE_URL}")" | awk '{ print $1 }')
+
+# Compare the expected and actual MD5 checksums
+if [[ "${EXPECTED_MD5}" == "${ACTUAL_MD5}" ]]; then
+   printf "\n\nFile download successful and MD5 checksum verified\n\n"
+   sleep 2
+else
+   printf "\n\nError: MD5 checksum does not match\n\n"	
+   rm "$(basename "${FILE_URL}")"
+   exit 1
+fi
+
 tar -xvf archbangretro.tar.xz
 rm -f archbangretro.tar.xz
 
@@ -492,7 +511,9 @@ mkdir -p /etc/pacman.d/hooks
    # +-+-+-+-+
 
    printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/shotwell_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/shotwell_install.hook
-   printf "cp ${ARCHBANGRETRO_FOLDER}/applications/shotwell.desktop /usr/share/applications/" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/shotwell_install.sh
+   printf "cp ${ARCHBANGRETRO_FOLDER}/applications/org.gnome.Shotwell.desktop /usr/share/applications/" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/shotwell_install.sh
+   printf "rm /usr/share/applications/org.gnome.Shotwell-Profile-Browser.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/shotwell_install.sh
+   printf "rm /usr/share/applications/org.gnome.Shotwell-Viewer.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/shotwell_install.sh
 
    # +-+-+-+-+
    # CATFISH
@@ -770,7 +791,6 @@ sudo -u ${ARCH_USER} makepkg -s
 pacman -U ./python2-gobject2*.pkg.tar.zst --noconfirm
 rm -rf /home/${ARCH_USER}/python2-gobject2
 
-
 # +-+-+-+-+
 # DEADBEEF
 # +-+-+-+-+
@@ -944,6 +964,15 @@ cd /home/${ARCH_USER}/archbey
 sudo -u ${ARCH_USER} makepkg -s
 pacman -U ./archbey*.pkg.tar.zst --noconfirm
 rm -rf /home/${ARCH_USER}/archbey
+
+# +-+-+-+-+
+# EPDFVIEW
+# +-+-+-+-+
+
+cd /home/${ARCH_USER}
+sudo -u ${ARCH_USER} curl -fLO https://archive.archlinux.org/packages/e/epdfview/epdfview-0.1.8-11-x86_64.pkg.tar.zst 
+pacman -U ./epdfview*.pkg.tar.zst --noconfirm
+rm -f epdfview*.pkg.tar.zst
 
 # +-+-+-+-+-+-+-+
 # MADPABLO-THEME
@@ -1225,6 +1254,8 @@ rm /usr/share/applications/designer.desktop
 rm /usr/share/applications/linguist.desktop
 rm /usr/share/applications/qdbusviewer.desktop
 rm /usr/share/applications/lstopo.desktop
+rm /usr/share/applications/org.gnome.Shotwell-Profile-Browser.desktop
+rm /usr/share/applications/org.gnome.Shotwell-Viewer.desktop
 
 EOF
 
