@@ -6,6 +6,7 @@ set -e  # Script must stop if there is an error.
 # SETTINGS
 # +-+-+-+-+
 
+# Reads the SETTINGS file to define global variables.
 source ./SETTINGS
 
 #
@@ -23,7 +24,13 @@ source ./SETTINGS
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 function make_swap_size () {
-	
+
+  # Use dmidecode to get information about the installed memory on the system.
+  # Use awk to extract the sizes of the memory modules.
+  # Use numfmt to convert these sizes to bytes.
+  # Use awk to calculate the total memory size.
+  # Use numfmt again to convert the total size back to a human-readable format with a whole number.
+
   physical_memory=$(
 	dmidecode -t memory |
 	awk '$1 == "Size:" && $2 ~ /^[0-9]+$/ {print $2$3}' |
@@ -32,9 +39,15 @@ function make_swap_size () {
 	numfmt --to=iec --suffix=B --format=%0f
   )
 
+  # Extract the integer portion of the physical_memory variable and increment it by one.
+  # This is often recommended to set the swap size to be equal to or slightly larger than the amount of physical memory in the system.
 
   SWAP_SIZE=${physical_memory%.*}
   SWAP_SIZE=$((SWAP_SIZE+1))
+
+  # Multiply the integer value of physical_memory by 1024, which converts the value from megabytes to kilobytes.
+  # Swap sizes are often specified in kilobytes.
+
   SWAP_SIZE=$((SWAP_SIZE * 1024))
 }
 
@@ -49,29 +62,41 @@ function make_swap_size () {
 
 function yes_or_no {
 
+   # First, the function takes two arguments: a question to ask and a default answer (which is assumed to be "no" if not provided).
    QUESTION=$1
    DEFAULT_ANSWER=$2
+
+   # If a default answer is provided, convert it to uppercase using the ${VAR^^} syntax.
    DEFAULT_ANSWER=${DEFAULT_ANSWER^^}
   
+   # Initialize a variable to store the user's answer.
    Y_N_ANSWER=""
+  
+   # Use a loop to repeatedly prompt the user for a yes or no answer until a valid answer is given.
    until [ "$Y_N_ANSWER" == Y ] || [ "$Y_N_ANSWER" == N ]; do
 
+      # Initialize a variable to store the user's input.
       yn=""
- 
+
+      # Ask the question and provide a default answer (if one was specified).
+      # Use the ${WHITE} and ${NC} variables (defined under the SETTINGS file) to set the text color.
+      # Read the user's input using the read command.
       printf "${QUESTION}"
       if [ ${DEFAULT_ANSWER} == "Y" ]
         then
-	  printf " ${WHITE}[Y/n]: ${NC}"
+	        printf " ${WHITE}[Y/n]: ${NC}"
           read yn
         else
-	  printf " ${WHITE}[y/N]: ${NC}"
+	        printf " ${WHITE}[y/N]: ${NC}"
           read yn
       fi
 
+      # If the user simply presses enter (i.e., no input is provided), use the default answer.
       if [ "$yn" == "" ]
         then Y_N_ANSWER=$DEFAULT_ANSWER
       fi
 
+      # Use a case statement to set the Y_N_ANSWER variable based on the user's input.
       case $yn in
          [Yy]*) Y_N_ANSWER="Y" ;;
          [Nn]*) Y_N_ANSWER="N" ;;
@@ -79,9 +104,11 @@ function yes_or_no {
 
    done
 
+   # Finally, convert the answer to uppercase (using the ${VAR^^} syntax) and return it.
    Y_N_ANSWER=${Y_N_ANSWER^^}
 
 }
+
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 #
@@ -167,7 +194,8 @@ printf "${GREEN}MIRRORS COUNTRY = ${CYAN}${REFLECTOR_COUNTRY}\n\n"
 printf "${GREEN}NVIDIA        = ${CYAN}${NVIDIA}\n"
 printf "${GREEN}NVIDIA_LEGACY = ${CYAN}${NVIDIA_LEGACY}\n\n"
 
-printf "${GREEN}FILE_URL    = ${CYAN}${FILE_URL}\n\n"
+printf "${GREEN}ARCHBANGRETRO_FILE_URL = ${CYAN}${ARCHBANGRETRO_FILE_URL}\n"
+printf "${GREEN}MANJARO_FILE_URL       = ${CYAN}${MANJARO_FILE_URL}\n\n"
 
 printf "${WHITE}*********************************************${NC}\n\n"
 
@@ -298,7 +326,7 @@ mount ${DRIVE_PART1} /mnt/boot
 
 EDITOR="vim nano"
 CATFISH_DEPENDENCIES="dbus-python python-pyxdg"
-DEPENDENCIES="go gnome-themes-standard git intltool python-cairo python-gobject python-pillow libxft libxinerama gdk-pixbuf-xlib python-distutils-extra cmake cblas lapack gcc-fortran"
+DEPENDENCIES="hwinfo go gnome-themes-standard git intltool python-cairo python-gobject python-pillow libxft libxinerama gdk-pixbuf-xlib python-distutils-extra cmake cblas lapack gcc-fortran"
 XORG="xorg-server xorg-xinit xorg-xkill"
 OPENBOX="openbox ttf-dejavu ttf-liberation"
 OPENBOX_MENU="glib2 gtk2 menu-cache gnome-menus lxmenu-data"
@@ -322,6 +350,32 @@ pacstrap /mnt base base-devel linux-lts linux-lts-headers linux-firmware man-db 
 
 genfstab -U /mnt >> /mnt/etc/fstab
 
+# +-+-+-+-+-+-+-+-+-+-+-
+# MHWD-MANJARO DOWNLOAD
+# +-+-+-+-+-+-+-+-+-+-+-
+
+cd /mnt/opt/
+
+# Download the file and compute its MD5 checksum
+
+printf "\n\nMANJARO_FILE_URL = ${MANJARO_FILE_URL}\n\n"
+
+curl -fLO "${MANJARO_FILE_URL}"
+MANJARO_ACTUAL_MD5=$(md5sum "$(basename "${MANJARO_FILE_URL}")" | awk '{ print $1 }')
+
+# Compare the expected and actual MD5 checksums
+if [[ "${MANJARO_EXPECTED_MD5}" == "${MANJARO_ACTUAL_MD5}" ]]; then
+   printf "\nFile download successful and MD5 checksum verified\n\n"
+   sleep 2
+else
+   printf "\nError: MD5 checksum does not match\n\n"	
+   rm "$(basename "${MANJARO_FILE_URL}")"
+   exit 1
+fi
+
+tar -xvf $(basename "$MANJARO_FILE_URL") -C /mnt/
+rm -f $(basename "$MANJARO_FILE_URL")
+
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 # ARCHBANGRETRO (where the magic starts :)
 #
@@ -334,23 +388,24 @@ cd /mnt${ARCHBANGRETRO_FOLDER}
 
 # Download the file and compute its MD5 checksum
 
-printf "\n\nFILE_URL = ${FILE_URL}\n\n"
+printf "\n\nARCHBANGRETRO_FILE_URL = ${ARCHBANGRETRO_FILE_URL}\n\n"
 
-curl -fLO "${FILE_URL}"
-ACTUAL_MD5=$(md5sum "$(basename "${FILE_URL}")" | awk '{ print $1 }')
+curl -fLO "${ARCHBANGRETRO_FILE_URL}"
+ACTUAL_MD5=$(md5sum "$(basename "${ARCHBANGRETRO_FILE_URL}")" | awk '{ print $1 }')
 
 # Compare the expected and actual MD5 checksums
-if [[ "${EXPECTED_MD5}" == "${ACTUAL_MD5}" ]]; then
-   printf "\n\nFile download successful and MD5 checksum verified\n\n"
+if [[ "${ARCHBANGRETRO_EXPECTED_MD5}" == "${ACTUAL_MD5}" ]]; then
+   printf "\nFile download successful and MD5 checksum verified\n\n"
    sleep 2
 else
-   printf "\n\nError: MD5 checksum does not match\n\n"	
-   rm "$(basename "${FILE_URL}")"
+   printf "\nError: MD5 checksum does not match\n\n"	
+   rm "$(basename "${ARCHBANGRETRO_FILE_URL}")"
    exit 1
 fi
 
-tar -xvf archbangretro.tar.xz
-rm -f archbangretro.tar.xz
+tar -xvf $(basename "$ARCHBANGRETRO_FILE_URL")
+rm -f $(basename "$ARCHBANGRETRO_FILE_URL")
+
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 # COPYING MIRROR LIST TO ARCHBANGRETRO
@@ -681,15 +736,21 @@ mkdir -p /etc/pacman.d/hooks
 cp -R ${ARCHBANGRETRO_FOLDER}/HOOKS/* /etc/pacman.d/hooks/ 
 
 
-
 # +-+-+-+-
 # PYTHON2
 # +-+-+-+-
 
 cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} curl -fLO https://archive.archlinux.org/packages/p/python2/python2-2.7.18-5-x86_64.pkg.tar.zst
-pacman -U ./python2*.pkg.tar.zst --noconfirm
-rm -f python2*.pkg.tar.zst
+sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/python2-bin.git
+cd /home/${ARCH_USER}/python2-bin
+sudo -u ${ARCH_USER} makepkg -s
+pacman -U ./python2-bin*.pkg.tar.zst --noconfirm
+rm -rf /home/${ARCH_USER}/python2-bin
+
+# cd /home/${ARCH_USER}
+# sudo -u ${ARCH_USER} curl -fLO https://archive.archlinux.org/packages/p/python2/python2-2.7.18-5-x86_64.pkg.tar.zst
+# pacman -U ./python2*.pkg.tar.zst --noconfirm
+# rm -f python2*.pkg.tar.zst
 
 # +-+-+-+-+-+-+-+-+-+
 # PYTHON2-SETUPTOOLS
@@ -1100,56 +1161,6 @@ curl -fLO https://sourceforge.net/projects/archbangretro/files/gnome-disk-utilit
 pacman -U ./gnome-disk-utility-3.4.1*.pkg.tar.zst --noconfirm
 rm -rf /home/${ARCH_USER}/gnome-disk-utility-3.4.1
 
-# +-+-+-+-+-+-+
-# MHWD-MANJARO
-# +-+-+-+-+-+-+
-
-cd /home/${ARCH_USER}
-curl -fLO https://sourceforge.net/projects/archbangretro/files/mhwd-manjaro.tar.xz
-tar -xvf mhwd-manjaro.tar.xz
-cd /home/${ARCH_USER}/mhwd-manjaro
-
-pacman -U ./v86d-0.1.10-5.1-x86_64.pkg.tar.xz --noconfirm
-pacman -U ./mhwd-amdgpu-19.1.0-1-any.pkg.tar.zst --noconfirm
-pacman -U ./mhwd-ati-19.1.0-1-any.pkg.tar.zst --noconfirm
-pacman -U ./mhwd-nvidia-390xx-390.147-2-any.pkg.tar.zst --noconfirm
-pacman -U ./mhwd-nvidia-470xx-470.103.01-1-any.pkg.tar.zst --noconfirm
-pacman -U ./mhwd-nvidia-510.54-1-any.pkg.tar.zst --noconfirm
-pacman -U ./mhwd-db-0.6.5-21-x86_64.pkg.tar.zst --noconfirm
-pacman -U ./mhwd-0.6.5-2-x86_64.pkg.tar.zst --noconfirm
-
-cd /home/${ARCH_USER}
-rm /home/${ARCH_USER}/mhwd-manjaro.tar.xz
-rm -rf /home/${ARCH_USER}/mhwd-manjaro
-
-
-if [ ${NVIDIA} = "YES" ]; then
-  
-  if [ ${NVIDIA_LEGACY} = "YES" ]; then
-     
-     cd /home/${ARCH_USER}
-     sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/nvidia-340xx-utils.git
-     cd /home/${ARCH_USER}/nvidia-340xx-utils
-     sudo -u ${ARCH_USER} makepkg -s
-     pacman -U ./nvidia-340xx-utils*.pkg.tar.zst --noconfirm
-     rm -rf /home/${ARCH_USER}/nvidia-340xx-utils
-     
-     cd /home/${ARCH_USER}
-     sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/nvidia-340xx-lts.git
-     cd /home/${ARCH_USER}/nvidia-340xx-lts
-     sudo -u ${ARCH_USER} makepkg -s
-     pacman -U ./nvidia-340xx-lts*.pkg.tar.zst --noconfirm --overwrite=*
-     rm -rf /home/${ARCH_USER}/nvidia-340xx-lts
-
-     cp ${ARCHBANGRETRO_FOLDER}/nvidia/30-nvidia-ignoreabi.conf /etc/X11/xorg.conf.d/
-  else 
-     mhwd -a pci nonfree 0300
-  fi
-
-else 
-  mhwd -a pci free 0300
-fi
-
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 # SLIM THEMES AND CONFIGURATION
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
@@ -1224,6 +1235,60 @@ sed -i 's/Exec=nm-applet/Exec=nm-applet --sm-disable/g' /etc/xdg/autostart/nm-ap
 #+-+-+-+-+-+-+-+
 
 gawk -i inplace '!/OnlyShowIn/' /etc/xdg/autostart/xfce4-notifyd.desktop
+
+
+# +-+-+-+-+-+-+-+-+-+-+
+# MHWD-MANJARO INSTALL
+# +-+-+-+-+-+-+-+-+-+-+
+
+# cd /home/${ARCH_USER}
+
+# mv /opt/$(basename "$MANJARO_FILE_URL") /home/${ARCH_USER}
+# sudo -u ${ARCH_USER} tar -xvf $(basename "$MANJARO_FILE_URL") -C /
+
+# cd /home/${ARCH_USER}/mhwd-manjaro/
+
+# pacman -U ./v86d-0.1.10-6-x86_64.pkg.tar.zst --noconfirm
+# pacman -U ./mhwd-amdgpu-19.1.0-1-any.pkg.tar.zst --noconfirm
+# pacman -U ./mhwd-ati-19.1.0-1-any.pkg.tar.zst --noconfirm
+# pacman -U ./mhwd-nvidia-390xx-390.157-6-any.pkg.tar.zst --noconfirm
+# pacman -U ./mhwd-nvidia-470xx-470.182.03-2-any.pkg.tar.zst --noconfirm
+# pacman -U ./mhwd-nvidia-530.41.03-4-any.pkg.tar.zst --noconfirm
+# pacman -U ./mhwd-db-0.6.5-25-any.pkg.tar.zst --noconfirm
+# pacman -U ./mhwd-0.6.5-25-x86_64.pkg.tar.zst --noconfirm
+
+# cd /home/${ARCH_USER}
+
+# rm -rf /home/${ARCH_USER}/mhwd-manjaro
+# rm -f $(basename "$MANJARO_FILE_URL")
+
+if [ ${NVIDIA} = "YES" ]; then
+  
+  if [ ${NVIDIA_LEGACY} = "YES" ]; then
+     
+     cd /home/${ARCH_USER}
+     sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/nvidia-340xx-utils.git
+     cd /home/${ARCH_USER}/nvidia-340xx-utils
+     sudo -u ${ARCH_USER} makepkg -s
+     pacman -U ./nvidia-340xx-utils*.pkg.tar.zst --noconfirm
+     rm -rf /home/${ARCH_USER}/nvidia-340xx-utils
+     
+     cd /home/${ARCH_USER}
+     sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/nvidia-340xx-lts.git
+     cd /home/${ARCH_USER}/nvidia-340xx-lts
+     sudo -u ${ARCH_USER} makepkg -s
+     pacman -U ./nvidia-340xx-lts*.pkg.tar.zst --noconfirm --overwrite=*
+     rm -rf /home/${ARCH_USER}/nvidia-340xx-lts
+
+     cp ${ARCHBANGRETRO_FOLDER}/nvidia/30-nvidia-ignoreabi.conf /etc/X11/xorg.conf.d/
+  else 
+     mhwd -a pci nonfree 0300
+  fi
+
+else 
+  mhwd -a pci free 0300
+fi
+
 
 # +-+-+-+-+-+-+-+-+-+-+
 # CLEANUP OPENBOX MENU

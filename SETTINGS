@@ -59,5 +59,8 @@ NVIDIA_LEGACY="NO"
 
 # Define the URL of the file and its expected MD5 checksum
 
-FILE_URL=https://sourceforge.net/projects/archbangretro/files/archbangretro.tar.xz
-EXPECTED_MD5=c842726c2f353719e0c34987db12d25c
+ARCHBANGRETRO_FILE_URL=https://sourceforge.net/projects/archbangretro/files/archbangretro.tar.xz
+ARCHBANGRETRO_EXPECTED_MD5=c842726c2f353719e0c34987db12d25c
+
+MANJARO_FILE_URL=https://sourceforge.net/projects/archbangretro/files/mhwd-manjaro.tar.xz
+MANJARO_EXPECTED_MD5=1098377126c2a9478d77728a123832a5
