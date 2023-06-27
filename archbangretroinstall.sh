@@ -195,7 +195,9 @@ printf "${GREEN}NVIDIA        = ${CYAN}${NVIDIA}\n"
 printf "${GREEN}NVIDIA_LEGACY = ${CYAN}${NVIDIA_LEGACY}\n\n"
 
 printf "${GREEN}ARCHBANGRETRO_FILE_URL = ${CYAN}${ARCHBANGRETRO_FILE_URL}\n"
-printf "${GREEN}MANJARO_FILE_URL       = ${CYAN}${MANJARO_FILE_URL}\n\n"
+printf "${GREEN}MANJARO_FILE_URL       = ${CYAN}${MANJARO_FILE_URL}\n"
+printf "${GREEN}MHWD_URL               = ${CYAN}${MHWD_URL}\n"
+printf "${GREEN}MANJARO_GPG_URL        = ${CYAN}${MANJARO_GPG_URL}\n\n"
 
 printf "${WHITE}*********************************************${NC}\n\n"
 
