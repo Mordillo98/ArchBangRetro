@@ -64,3 +64,9 @@ ARCHBANGRETRO_EXPECTED_MD5=c842726c2f353719e0c34987db12d25c
 
 MANJARO_FILE_URL=https://sourceforge.net/projects/archbangretro/files/mhwd-manjaro.tar.xz
 MANJARO_EXPECTED_MD5=1098377126c2a9478d77728a123832a5
+
+# Specify the URL of the MANJARO_GPG_FILE
+MANJARO_GPG_URL="https://gitlab.manjaro.org/packages/core/manjaro-keyring/-/raw/master/manjaro.gpg"
+
+# Specify the URL of the directory containing the files
+MHWD_URL="https://mirror.csclub.uwaterloo.ca/manjaro/stable/extra/x86_64/"

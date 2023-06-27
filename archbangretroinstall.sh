@@ -316,13 +316,147 @@ mount /${DRIVE_PART3} /mnt
 mkdir /mnt/boot
 mount ${DRIVE_PART1} /mnt/boot
 
+# +-+-+-+-+-+-+-+-+-+-+-
+# MHWD-MANJARO DOWNLOAD
+# +-+-+-+-+-+-+-+-+-+-+-
+
+# Specify the directory where the files will be downloaded and extracted
+TARGET_DIRECTORY="/mnt/"
+
+# Initialize FILE_LIST and V86D_FILE_LIST as empty variables
+FILE_LIST=""
+V86D_FILE_LIST=""
+
+# Change to the target directory
+cd ${TARGET_DIRECTORY}
+
+# Print a blank line
+echo
+
+# Print the title
+echo -e "${WHITE}MHWD MANJARO INSTALLATION${NC}"
+
+# Print a line of asterisks
+echo -e "${WHITE}*************************${NC}"
+
+# Print a blank line
+echo
+
+# Import manjaro.gpg if not already installed
+if ! gpg --list-keys manjaro >/dev/null 2>&1; then
+    echo -e "${CYAN}Importing manjaro.gpg...${NC}"
+    echo
+    curl -s "$MANJARO_GPG_URL" | gpg --import
+    echo
+    echo -e "${GREEN}manjaro.gpg imported successfully!${NC}"
+else
+    echo -e "${GREEN}manjaro.gpg is already installed.${NC}"
+fi
+
+echo
+
+printf "${YELLOW}Retrieve list of mhwd-manjaro files...${NC}\n\n"
+
+# Fetch the HTML content of the URL and extract the file names
+
+printf "${CYAN}1) mhwd\n"
+FILE_LIST=$(curl -s "$MHWD_URL" | grep -oP 'mhwd[^"]*\.tar\.zst')
+
+printf "${CYAN}2) v86d\n\n${NC}"
+V86D_FILE_LIST=$(curl -s "$MHWD_URL" | grep -oP 'v86d[^"]*\.tar\.zst')
+
+# Function to download and extract files
+download_and_extract() {
+    local FILE_NAME="$1"
+    local PGP_FILE_NAME="$FILE_NAME.sig"
+
+    if [[ ! -e "$FILE_NAME" ]]; then
+        echo -e "${YELLOW}Downloading $FILE_NAME...${NC}"
+        curl -s -O "$MHWD_URL$FILE_NAME" > /dev/null
+
+        echo -e "${YELLOW}Downloading $PGP_FILE_NAME...${NC}"
+        curl -s -O "$MHWD_URL$PGP_FILE_NAME" > /dev/null
+
+        echo -e "${GREEN}Verifying $FILE_NAME...${NC}"
+        GPG_OUTPUT=$(gpg --verify "$PGP_FILE_NAME" "$FILE_NAME" 2>&1)
+        if [[ $GPG_OUTPUT =~ "Good signature" ]]; then
+            echo -e "${GREEN}Verification successful!${NC}"
+        else
+            echo -e "${RED}Verification failed:${NC}"
+            echo "$GPG_OUTPUT"
+        fi
+
+        echo -e "${GREEN}Extracting $FILE_NAME...${NC}"
+        tar -xf "$FILE_NAME" -C "$TARGET_DIRECTORY"
+        echo -e "${WHITE}Extraction completed!${NC}"
+        echo
+
+        local SIG_FILE="${FILE_NAME}.sig"
+        if [[ -e "$SIG_FILE" ]]; then
+            rm "$SIG_FILE"
+        fi
+    fi
+}
+
+# Download and extract mhwd*.tar.zst files
+for FILE in $FILE_LIST; do
+    download_and_extract "$FILE"
+done
+
+# Download and extract v86d*.tar.zst files
+for FILE in $V86D_FILE_LIST; do
+    download_and_extract "$FILE"
+done
+
+echo -e "${YELLOW}All files downloaded and extracted.${NC}"
+
+# Clean up downloaded packages
+printf "${CYAN}Cleaning up downloaded packages...${NC}"
+for FILE in $FILE_LIST $V86D_FILE_LIST; do
+    if [[ -e "$FILE" ]]; then
+        rm "$FILE"
+        printf "."
+    fi
+done
+
+echo
+echo -e "${GREEN}Cleanup completed${NC}"
+
+
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+# ARCHBANGRETRO (where the magic starts :)
+#
+# Copying custom files needed during 
+# arch-chroot script.
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+mkdir -p /mnt${ARCHBANGRETRO_FOLDER}
+cd /mnt${ARCHBANGRETRO_FOLDER}
+
+# Download the file and compute its MD5 checksum
+
+printf "\n${CYAN}ARCHBANGRETRO_FILE_URL = ${YELLOW}${ARCHBANGRETRO_FILE_URL}${NC}\n\n"
+
+curl -fLO "${ARCHBANGRETRO_FILE_URL}"
+ACTUAL_MD5=$(md5sum "$(basename "${ARCHBANGRETRO_FILE_URL}")" | awk '{ print $1 }')
+
+# Compare the expected and actual MD5 checksums
+if [[ "${ARCHBANGRETRO_EXPECTED_MD5}" == "${ACTUAL_MD5}" ]]; then
+   printf "\n${GREEN}File download successful and MD5 checksum verified${NC}\n\n"
+   sleep 2
+else
+   printf "\n${RED}Error: MD5 checksum does not match${NC}\n\n"	
+   rm "$(basename "${ARCHBANGRETRO_FILE_URL}")"
+   exit 1
+fi
+
+tar -xvf $(basename "$ARCHBANGRETRO_FILE_URL")
+rm -f $(basename "$ARCHBANGRETRO_FILE_URL")
+
+
 # +-+-+-+-+-+-+-+-+
 # INSTALL PACKAGES
 # +-+-+-+-+-+-+-+-+
-
-#
-# DeadBeef
-# LibGlade
 
 EDITOR="vim nano"
 CATFISH_DEPENDENCIES="dbus-python python-pyxdg"
@@ -349,63 +483,6 @@ pacstrap /mnt base base-devel linux-lts linux-lts-headers linux-firmware man-db 
 # +-+-+-+-+-+-+-+-+
 
 genfstab -U /mnt >> /mnt/etc/fstab
-
-# +-+-+-+-+-+-+-+-+-+-+-
-# MHWD-MANJARO DOWNLOAD
-# +-+-+-+-+-+-+-+-+-+-+-
-
-cd /mnt/opt/
-
-# Download the file and compute its MD5 checksum
-
-printf "\n\nMANJARO_FILE_URL = ${MANJARO_FILE_URL}\n\n"
-
-curl -fLO "${MANJARO_FILE_URL}"
-MANJARO_ACTUAL_MD5=$(md5sum "$(basename "${MANJARO_FILE_URL}")" | awk '{ print $1 }')
-
-# Compare the expected and actual MD5 checksums
-if [[ "${MANJARO_EXPECTED_MD5}" == "${MANJARO_ACTUAL_MD5}" ]]; then
-   printf "\nFile download successful and MD5 checksum verified\n\n"
-   sleep 2
-else
-   printf "\nError: MD5 checksum does not match\n\n"	
-   rm "$(basename "${MANJARO_FILE_URL}")"
-   exit 1
-fi
-
-tar -xvf $(basename "$MANJARO_FILE_URL") -C /mnt/
-rm -f $(basename "$MANJARO_FILE_URL")
-
-# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-# ARCHBANGRETRO (where the magic starts :)
-#
-# Copying custom files needed during 
-# arch-chroot script.
-# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
-mkdir -p /mnt${ARCHBANGRETRO_FOLDER}
-cd /mnt${ARCHBANGRETRO_FOLDER}
-
-# Download the file and compute its MD5 checksum
-
-printf "\n\nARCHBANGRETRO_FILE_URL = ${ARCHBANGRETRO_FILE_URL}\n\n"
-
-curl -fLO "${ARCHBANGRETRO_FILE_URL}"
-ACTUAL_MD5=$(md5sum "$(basename "${ARCHBANGRETRO_FILE_URL}")" | awk '{ print $1 }')
-
-# Compare the expected and actual MD5 checksums
-if [[ "${ARCHBANGRETRO_EXPECTED_MD5}" == "${ACTUAL_MD5}" ]]; then
-   printf "\nFile download successful and MD5 checksum verified\n\n"
-   sleep 2
-else
-   printf "\nError: MD5 checksum does not match\n\n"	
-   rm "$(basename "${ARCHBANGRETRO_FILE_URL}")"
-   exit 1
-fi
-
-tar -xvf $(basename "$ARCHBANGRETRO_FILE_URL")
-rm -f $(basename "$ARCHBANGRETRO_FILE_URL")
-
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 # COPYING MIRROR LIST TO ARCHBANGRETRO
