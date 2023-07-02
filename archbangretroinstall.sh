@@ -421,8 +421,6 @@ done
 # Print a newline and blank line after the progress indicator.
 printf "\n\n"
 
-echo ${UNIQUE_FILE_LIST} > /tmp/unique_file_list
-
 # Function to download and extract files
 download_and_extract() {
     local FILE_NAME="$1"
