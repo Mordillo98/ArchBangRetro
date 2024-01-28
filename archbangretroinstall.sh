@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e  # Script must stop if there is an error.
+# set -e  # Script must stop if there is an error.
 
 # +-+-+-+-+
 # SETTINGS
@@ -187,9 +187,7 @@ printf "${GREEN}MIRRORS COUNTRY = ${CYAN}${REFLECTOR_COUNTRY}\n\n"
 printf "${GREEN}NVIDIA        = ${CYAN}${NVIDIA}\n"
 printf "${GREEN}NVIDIA_LEGACY = ${CYAN}${NVIDIA_LEGACY}\n\n"
 
-printf "${GREEN}ARCHBANGRETRO_FILE_URL = ${CYAN}${ARCHBANGRETRO_FILE_URL}\n"
-printf "${GREEN}MHWD_URL               = ${CYAN}${MHWD_URL}\n"
-printf "${GREEN}MANJARO_GPG_URL        = ${CYAN}${MANJARO_GPG_URL}\n\n"
+printf "${GREEN}ARCHBANGRETRO_REPO = ${CYAN}${ARCHBANGRETRO_REPO}\n\n"
 
 printf "${WHITE}*********************************************${NC}\n\n"
 
@@ -238,7 +236,7 @@ printf "\n${NC}"
 
 printf "${YELLOW}Setting up best mirrors from ${REFLECTOR_COUNTRY} for this live session.\n\n${NC}" 
 
-reflector --country "${REFLECTOR_COUNTRY}" --sort score --score 5 --protocol https --save /etc/pacman.d/mirrorlist
+reflector --country ${REFLECTOR_COUNTRY} --sort delay --score 5 --protocol https --save /etc/pacman.d/mirrorlist
 
 countsleep "Partitioning the disk will start in... " 5
 
@@ -310,175 +308,6 @@ mount /${DRIVE_PART3} /mnt
 mkdir /mnt/boot
 mount ${DRIVE_PART1} /mnt/boot
 
-# +-+-+-+-+-+-+-+-+-+-+-
-# MHWD-MANJARO DOWNLOAD
-# +-+-+-+-+-+-+-+-+-+-+-
-
-# Specify the directory where the files will be downloaded and extracted
-TARGET_DIRECTORY="/mnt/"
-
-# Change to the target directory
-cd ${TARGET_DIRECTORY}
-
-# Print a blank line
-echo
-
-# Print the title
-echo -e "${WHITE}MHWD MANJARO INSTALLATION${NC}"
-
-# Print a line of asterisks
-echo -e "${WHITE}*************************${NC}"
-
-# Print a blank line
-echo
-
-# Import manjaro.gpg if not already installed
-if ! gpg --list-keys manjaro >/dev/null 2>&1; then
-    echo -e "${CYAN}Importing manjaro.gpg...${NC}"
-    echo
-    curl -s "$MANJARO_GPG_URL" | gpg --import
-    echo
-    echo -e "${GREEN}manjaro.gpg imported successfully!${NC}"
-else
-    echo -e "${GREEN}manjaro.gpg is already installed.${NC}"
-fi
-
-echo
-
-printf "${YELLOW}Retrieving list of mhwd-manjaro files..."
-
-# Fetch the HTML content of the URL and extract the file names
-
-# +-+-+-+-+-+-+-+-+-+-+-+
-# MHWD AND V86d DOWNLOAD
-# +-+-+-+-+-+-+-+-+-+-+-+
-
-# Maximum number of retries
-MAX_RETRIES=10
-
-# Initialize the retry counter
-RETRY_COUNT=0
-
-# Retry loop
-while [ "$RETRY_COUNT" -lt "$MAX_RETRIES" ]; do
-    RETRY_COUNT=$((RETRY_COUNT + 1))
-
-    # Initialize the FILE_LIST variable
-    FILE_LIST=""
-
-    # Count the number of files fetched and dot counter
-    COUNT=0
-    DOT_COUNT=0
-
-    # Start fetching files with progress indicator
-    (curl -s -m 60 "$MHWD_URL" | grep -oP 'mhwd[^"]*\.tar\.zst' > /tmp/file_list) &
-    (curl -s -m 60 "$MHWD_URL" | grep -oP 'v86d[^"]*\.tar\.zst' >> /tmp/file_list) &
-
-    # Display dots for every 10 files until the curl command finishes
-    while kill -0 $! >/dev/null 2>&1; do
-        COUNT=$((COUNT + 1))
-
-        if ((COUNT % 10 == 0)); then
-            printf "."
-            DOT_COUNT=$((DOT_COUNT + 1))
-        fi
-
-        sleep 0.1 # Optional: Add a short delay for visualization purposes
-    done
-
-    # Read the temporary file to process the fetched files
-    while read -r FILE; do
-        COUNT=$((COUNT + 1))
-
-        # Append the file to the FILE_LIST variable
-        FILE_LIST+=" $FILE"
-
-        if ((COUNT % 10 == 0)); then
-            printf "."
-            DOT_COUNT=$((DOT_COUNT + 1))
-        fi
-    done < /tmp/file_list
-
-    # Remove the temporary file
-    rm /tmp/file_list
-
-    # Remove duplicate lines
-    UNIQUE_FILE_LIST=$(echo "$FILE_LIST" | tr ' ' '\n' | sort | uniq)
-
-    # Check if UNIQUE_FILE_LIST has exactly 9 file names
-    FILE_COUNT=$(echo "$UNIQUE_FILE_LIST" | wc -l)
-
-    if [ "$FILE_COUNT" -eq 9 ]; then
-        break
-    else
-        if [ "$RETRY_COUNT" -eq "$MAX_RETRIES" ]; then
-            printf "${WHITE}\n\nMaximum retries reached. Exiting.${NC}\n\n"
-            exit 1
-        fi
-    fi
-done
-
-# Print a newline and blank line after the progress indicator.
-printf "\n\n"
-
-# Function to download and extract files
-download_and_extract() {
-    local FILE_NAME="$1"
-    local PGP_FILE_NAME="$FILE_NAME.sig"
-
-    if [[ ! -e "$FILE_NAME" ]]; then
-        echo -e "${YELLOW}Downloading $FILE_NAME...${NC}"
-        curl -s -O "$MHWD_URL$FILE_NAME" > /dev/null
-
-        echo -e "${YELLOW}Downloading $PGP_FILE_NAME...${NC}"
-        curl -s -O "$MHWD_URL$PGP_FILE_NAME" > /dev/null
-
-        echo -e "${GREEN}Verifying $FILE_NAME...${NC}"
-        GPG_OUTPUT=$(gpg --verify "$PGP_FILE_NAME" "$FILE_NAME" 2>&1)
-        if [[ $GPG_OUTPUT =~ "Good signature" ]]; then
-            echo -e "${GREEN}Verification successful!${NC}"
-        else
-            echo -e "${RED}Verification failed:${NC}"
-            echo "$GPG_OUTPUT"
-        fi
-
-        echo -e "${CYAN}Extracting $FILE_NAME...${NC}"
-        tar -xf "$FILE_NAME" -C "$TARGET_DIRECTORY"
-        echo -e "${WHITE}Extraction completed!${NC}"
-        echo
-
-        local SIG_FILE="${FILE_NAME}.sig"
-        if [[ -e "$SIG_FILE" ]]; then
-            rm "$SIG_FILE"
-        fi
-    fi
-}
-
-# Download and extract mhwd*.tar.zst files
-for FILE in $UNIQUE_FILE_LIST; do
-    download_and_extract "$FILE"
-done
-
-echo -e "${YELLOW}All files downloaded and extracted.${NC}"
-
-# Clean up downloaded packages
-printf "${CYAN}Cleaning up downloaded packages..."
-for FILE in $FILE_LIST; do
-    if [[ -e "$FILE" ]]; then
-        rm "$FILE"
-        printf "."
-    fi
-done
-
-rm ${TARGET_DIRECTORY}.BUILDINFO >/dev/null 2>&1
-rm ${TARGET_DIRECTORY}.INSTALL >/dev/null 2>&1
-rm ${TARGET_DIRECTORY}.PKGINFO >/dev/null 2>&1
-rm ${TARGET_DIRECTORY}.MTREE >/dev/null 2>&1
-
-echo
-echo -e "${GREEN}Cleanup completed${NC}"
-echo
-
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 # ARCHBANGRETRO (where the magic starts :)
 #
@@ -509,6 +338,23 @@ fi
 tar -xvf $(basename "$ARCHBANGRETRO_FILE_URL")
 rm -f $(basename "$ARCHBANGRETRO_FILE_URL")
 
+# +-+-+-+-+-+-+-+-
+# ENABLE MULTILIB
+# +-+-+-+-+-+-+-+-
+
+sed -i "/\[multilib\]/,/Include/"'s/^#//' /etc/pacman.conf
+
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+# ADD ARCHBANGRETRO LOCAL REPO
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+printf "\n[archbangretro]\n" >> /etc/pacman.conf
+printf "SigLevel = Optional\n" >> /etc/pacman.conf
+printf "Server = file:///mnt/archbangretro/\n" >> /etc/pacman.conf
+
+mkdir /mnt/archbangretro
+chmod 777 /mnt/archbangretro
+mount ${ARCHBANGRETRO_REPO} /mnt/archbangretro
 
 # +-+-+-+-+-+-+-+-+
 # INSTALL PACKAGES
@@ -516,10 +362,11 @@ rm -f $(basename "$ARCHBANGRETRO_FILE_URL")
 
 EDITOR="vim nano"
 CATFISH_DEPENDENCIES="dbus-python python-pyxdg"
-DEPENDENCIES="hwinfo go gnome-themes-standard git intltool python-cairo python-gobject python-pillow libxft libxinerama gdk-pixbuf-xlib python-distutils-extra cmake cblas lapack gcc-fortran"
+DEPENDENCIES="autoconf-archive hwinfo nfs-utils go gnome-themes-standard git intltool python-cairo python-gobject python-pillow libxft libxinerama gdk-pixbuf-xlib python-distutils-extra cmake cblas lapack gcc-fortran"
 XORG="xorg-server xorg-xinit xorg-xkill"
 OPENBOX="openbox ttf-dejavu ttf-liberation"
 OPENBOX_MENU="glib2 gtk2 menu-cache gnome-menus lxmenu-data"
+AUR_APPS="mhwd-manjaro-bin python2-bin python2-setuptools cython2 gnome-icon-theme-symbolic gnome-icon-theme yay obmenu2-git batti-icons oblogout-py3-git python2-gobject2 python2-gobject2 deadbeef libglade python2-cairo python2-numpy pygtk python2-dbus obkey dmenu2 gnome-carbonate gnome-colors-icon-theme-bin archbangretro-wallpaper openbox-menu fbxkb openbox-themes archbey epdfview madpablo-theme flat-remix-gtk hardinfo-git gnome-disk-utility-3.4.1 httpdirfs          "
 ARCHBANG_APPS="catfish reflector lxterminal lxappearance lxappearance-obconf lxinput leafpad gucharmap pcmanfm galculator parcellite xarchiver shotwell htop arandr obconf tint2 conky xcompmgr nitrogen scrot exo gnome-mplayer xfburn libfm-gtk2 gmrun slim packer arj cronie dialog dnsutils gnome-keyring gsimplecal gtk-engine-murrine gtk-engines inetutils jfsutils logrotate lzop memtest86+ modemmanager ntfs-3g p7zip reiserfsprogs rsync squashfs-tools syslinux tcl unrar unzip usb_modeswitch zip gvfs cbatticon xdg-utils"
 ARCHBANG_ICONS="gtk-update-icon-cache hicolor-icon-theme librsvg icon-naming-utils intltool" 
 CODECS="a52dec faac faad2 jasper lame libdca libdv libmad libmpeg2 libtheora libvorbis libxv wavpack x264 xvidcore gstreamer"
@@ -527,24 +374,25 @@ SOUND="volumeicon alsa-utils pulseaudio alsa-firmware alsa-oss"
 NETWORK="network-manager-applet broadcom-wl xfce4-notifyd"
 BROWSER="firefox"
 XF86="xf86-input-elographics xf86-input-evdev xf86-input-libinput xf86-input-synaptics xf86-input-vmmouse xf86-input-void xf86-input-wacom"
-CALAMARES="qt5 kpmcore yaml-cpp boost extra-cmake-modules kiconthemes"
+FONTS_WIN11="p7zip udisks2 curl expat fuse2 gumbo-parser doxygen help2man"
+CALAMARES="qt5 kpmcore yaml-cpp boost extra-cmake-modules kiconthemes5"
 
 
 # XF86="xf86-input-elographics xf86-input-evdev xf86-input-libinput xf86-input-synaptics xf86-input-vmmouse xf86-input-void xf86-input-wacom xf86-video-amdgpu xf86-video-ati xf86-video-dummy xf86-video-fbdev xf86-video-intel xf86-video-nouveau xf86-video-openchrome xf86-video-sisusb xf86-video-vesa xf86-video-vmware xf86-video-voodoo xf86-video-qxl"
 
-pacstrap /mnt base base-devel linux-lts linux-lts-headers linux-firmware man-db man-pages texinfo grub efibootmgr $EDITOR $DEPENDENCIES $CATFISH_DEPENDENCIES $XORG $OPENBOX $OPENBOX_MENU $ARCHBANG_APPS $ARCHBANG_ICONS $CODECS $SOUND $NETWORK $BROWSER $XF86 $CALAMARES
-
-# +-+-+-+-+-+-+-+-+
-# SETUP /ETC/FSTAB
-# +-+-+-+-+-+-+-+-+
-
-genfstab -U /mnt >> /mnt/etc/fstab
+pacstrap /mnt base base-devel linux-lts linux-lts-headers linux-firmware man-db man-pages texinfo grub efibootmgr $AUR_APPS $EDITOR $DEPENDENCIES $CATFISH_DEPENDENCIES $XORG $OPENBOX $OPENBOX_MENU $ARCHBANG_APPS $ARCHBANG_ICONS $CODECS $SOUND $NETWORK $BROWSER $XF86 $FONTS_WIN11 $CALAMARES 
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 # COPYING MIRROR LIST TO ARCHBANGRETRO
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 
 cp /etc/pacman.d/mirrorlist /mnt/etc/pacman.d/
+
+# +-+-+-+-+-+-+-+-+
+# SETUP /ETC/FSTAB
+# +-+-+-+-+-+-+-+-+
+
+genfstab -U /mnt >> /mnt/etc/fstab
 
 # +-+-+-+-+-+-+-
 # CHROOT SCRIPT
@@ -557,7 +405,27 @@ arch-chroot /mnt /bin/bash << EOF
 # +-+-+-+-+-+-+-+-
 
 sed -i "/\[multilib\]/,/Include/"'s/^#//' /etc/pacman.conf
-pacman -Sy > /dev/null
+
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+# ADD ARCHBANGRETRO LOCAL REPO
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+printf "\n[archbangretro]\n" >> /etc/pacman.conf
+printf "SigLevel = Optional\n" >> /etc/pacman.conf
+printf "Server = file:///archbangretro/\n" >> /etc/pacman.conf
+
+#
+# Needs to wait for networking to start in order for /etc/fstab to 
+# load network mounts.
+#
+
+printf "[Unit]\nDescription=Mount /etc/fstab after networking services\nWants=network-online.target\nAfter=network-online.target\n\n[Service]\nType=oneshot\nExecStartPre=/bin/sleep 10\nExecStart=/bin/mount -a\nTimeoutSec=30\n\n[Install]\nWantedBy=multi-user.target\n" > /etc/systemd/system/mnt-fstab.service
+
+systemctl daemon-reload
+systemctl enable mnt-fstab.service
+systemctl start mnt-fstab.service
+
+pacman -Sy 
 
 # +-+-+-+-+-+ 
 # TIME ZONE
@@ -869,228 +737,28 @@ mkdir -p /etc/pacman.d/hooks
 cp -R ${ARCHBANGRETRO_FOLDER}/HOOKS/* /etc/pacman.d/hooks/ 
 
 
-# +-+-+-+-
-# PYTHON2
-# +-+-+-+-
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
+# DECLARE PYTHONHOME FOR PKGBUILD
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/python2-bin.git
-cd /home/${ARCH_USER}/python2-bin
-sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./python2-bin*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/python2-bin
+# Text to be added
+TEXT="\n\n# +-+-+-+-+-+-+-+-+-+-+-+-+-+\n# SETUP PYTHON VARIABLE\n# +-+-+-+-+-+-+-+-+-+-+-+-+-+\n\nexport PYTHONHOME=/usr\n\n\n\n\n"
 
-# cd /home/${ARCH_USER}
-# sudo -u ${ARCH_USER} curl -fLO https://archive.archlinux.org/packages/p/python2/python2-2.7.18-5-x86_64.pkg.tar.zst
-# pacman -U ./python2*.pkg.tar.zst --noconfirm
-# rm -f python2*.pkg.tar.zst
+# Backup the original makepkg.conf file
+cp /etc/makepkg.conf /etc/makepkg.conf.backup
 
-# +-+-+-+-+-+-+-+-+-+
-# PYTHON2-SETUPTOOLS
-# +-+-+-+-+-+-+-+-+-+
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} curl -fLO https://archive.archlinux.org/packages/p/python2-setuptools/python2-setuptools-2:44.1.1-2-any.pkg.tar.zst
-pacman -U ./python2-setuptools*.pkg.tar.zst --noconfirm
-rm -f python2-setuptools*.pkg.tar.zst
-
-# +-+-+-+-+
-# CYTHON2
-# +-+-+-+-+
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/cython2.git
-cd /home/${ARCH_USER}/cython2
-sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./cython2*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/cython2
-
-
-# +-+-+-+-+-+-+-+-+-+-+-+-+-
-# GNOME-ICON-THEME-SYMBOLIC (dependency for gnome-icon-theme)
-# +-+-+-+-+-+-+-+-+-+-+-+-+-
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/gnome-icon-theme-symbolic.git
-cd /home/${ARCH_USER}/gnome-icon-theme-symbolic
-sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./gnome-icon-theme-symbolic*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/gnome-icon-theme-symbolic
-
-
-# +-+-+-+-+-+-+-+-+
-# GNOME-ICON-THEME
-# +-+-+-+-+-+-+-+-+
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/gnome-icon-theme.git
-cd /home/${ARCH_USER}/gnome-icon-theme
-sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./gnome-icon-theme*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/gnome-icon-theme
-
-
-# +-+-
-# YAY
-# +-+-
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/yay.git
-cd /home/${ARCH_USER}/yay
-sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./yay*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/yay
-
-# +-+-+-+-+-+-
-# OBMENU2-GIT
-# +-+-+-+-+-+-
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/obmenu2-git.git
-cd /home/${ARCH_USER}/obmenu2-git
-sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./obmenu2*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/obmenu2-git
-
-# +-+-+-+-+-+-
-# BATTI-ICONS
-# +-+-+-+-+-+-
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/batti-icons.git
-cd /home/${ARCH_USER}/batti-icons
-sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./batti-icons*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/batti-icons
-
-# +-+-+-+-+-+-+-+-+
-# OBLOGOUT-PY3-GIT
-# +-+-+-+-+-+-+-+-+
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/oblogout-py3-git.git
-cd /home/${ARCH_USER}/oblogout-py3-git
-sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./oblogout-py3-git*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/oblogout-py3-git
-
-# +-+-+-+-+-+-+-+-+
-# PYTHON2-GOBJECT2 (dependency for pygtk)
-# +-+-+-+-+-+-+-+-+
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/python2-gobject2.git
-cd /home/${ARCH_USER}/python2-gobject2
-sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./python2-gobject2*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/python2-gobject2
-
-# +-+-+-+-+
-# DEADBEEF
-# +-+-+-+-+
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} curl -fLO https://archive.archlinux.org/packages/d/deadbeef/deadbeef-1.8.4-1-x86_64.pkg.tar.zst
-pacman -U ./deadbeef*.pkg.tar.zst --noconfirm
-rm -f deadbeef*.pkg.tar.zst
-
-# +-+-+-+-+
-# LIBGLADE
-# +-+-+-+-+
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} curl -fLO https://archive.archlinux.org/packages/l/libglade/libglade-2.6.4-7-x86_64.pkg.tar.zst
-pacman -U ./libglade*.pkg.tar.zst --noconfirm
-rm -f libglade*.pkg.tar.zst
-
-# +-+-+-+-+-+-+-
-# PYTHON2-CAIRO (dependency for PYGTK)
-# +-+-+-+-+-+-+-
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/python2-cairo.git
-cd /home/${ARCH_USER}/python2-cairo
-sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./python2-cairo*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/python2-cairo
-
-# +-+-+-+-+-+-+-
-# PYTHON2-NUMPY (dependency for PYGTK)
-# +-+-+-+-+-+-+-
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/python2-numpy.git
-cd /home/${ARCH_USER}/python2-numpy
-sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./python2-numpy*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/python2-numpy
-
-# +-+-+-
-# PYGTK (dependency for catfish-python2 and obkey)
-# +-+-+-
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/pygtk.git
-cd /home/${ARCH_USER}/pygtk
-sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./pygtk*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/pygtk
-
-# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
-# PYTHON2-DBUS (dependency for catfish-python2)
-# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
-
-mkdir /home/${ARCH_USER}/python2-dbus
-cd /home/${ARCH_USER}/python2-dbus
-curl -fLO https://archive.archlinux.org/repos/2021/02/28/extra/os_x86_64/python2-dbus-1.2.16-3-x86_64.pkg.tar.zst
-pacman -U ./python2-dbus*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/python2-dbus
-
-# +-+-+-
-# OBKEY 
-# +-+-+-
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/obkey.git
-cd /home/${ARCH_USER}/obkey
-sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./obkey*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/obkey
-
-# +-+-+-+
-# DMENU2 
-# +-+-+-+
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/dmenu2.git
-cd /home/${ARCH_USER}/dmenu2
-sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./dmenu2*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/dmenu2
+# Append the text to makepkg.conf
+echo -e "$TEXT" | tee -a /etc/makepkg.conf > /dev/null
 
 # +-+-+-+-+-+-+-+-
 # GNOME-CARBONATE
 # +-+-+-+-+-+-+-+-
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/gnome-carbonate.git
-cd /home/${ARCH_USER}/gnome-carbonate
-sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./gnome-carbonate*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/gnome-carbonate
 
 gtk-update-icon-cache -f -t /usr/share/icons/gnome-carbonate/
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-
 # GNOME-COLORS-ICON-THEME-BIN
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/gnome-colors-icon-theme-bin.git
-cd /home/${ARCH_USER}/gnome-colors-icon-theme-bin
-sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./gnome-colors-icon-theme-bin*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/gnome-colors-icon-theme-bin
 
 gtk-update-icon-cache -f -t /usr/share/icons/gnome-colors-icon-theme/
 
@@ -1103,92 +771,9 @@ rm -rf /usr/share/icons/gnome-tribute
 rm -rf /usr/share/icons/gnome-wine
 rm -rf /usr/share/icons/gnome-wise
 
-# +-+-+-+-+- 
-# WALLPAPER
-# +-+-+-+-+-
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/archbangretro-wallpaper.git
-cd /home/${ARCH_USER}/archbangretro-wallpaper
-sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./archbangretro-wallpaper*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/archbangretro-wallpaper
-
-# +-+-+-+-+-+-+-
-# OPENBOX-MENU
-# +-+-+-+-+-+-+-
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/openbox-menu.git
-cd /home/${ARCH_USER}/openbox-menu
-# sed -i '/patch -i ../d' ./PKGBUILD
-sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./openbox-menu*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/openbox-menu
-
-# +-+-+-+
-# FBXKB 
-# +-+-+-+
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/fbxkb.git
-cd /home/${ARCH_USER}/fbxkb
-sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./fbxkb*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/fbxkb
-
-# +-+-+-+-+-+-+-+
-# OPENBOX-THEMES 
-# +-+-+-+-+-+-+-+
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/openbox-themes.git
-cd /home/${ARCH_USER}/openbox-themes
-sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./openbox-themes*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/openbox-themes
-
-# +-+-+-+-
-# ARCHBEY
-# +-+-+-+-
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/archbey.git
-cd /home/${ARCH_USER}/archbey
-sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./archbey*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/archbey
-
-# +-+-+-+-+
-# EPDFVIEW
-# +-+-+-+-+
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} curl -fLO https://archive.archlinux.org/packages/e/epdfview/epdfview-0.1.8-11-x86_64.pkg.tar.zst 
-pacman -U ./epdfview*.pkg.tar.zst --noconfirm
-rm -f epdfview*.pkg.tar.zst
-
-# +-+-+-+-+-+-+-+
-# MADPABLO-THEME
-# +-+-+-+-+-+-+-+
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/madpablo-theme.git
-cd /home/${ARCH_USER}/madpablo-theme
-sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./madpablo-theme*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/madpablo-theme
-
 # +-+-+-+-+-+-+-+
 # FLAT-REMIX-GTK
 # +-+-+-+-+-+-+-+
-
-cd /home/${ARCH_USER}
-sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/flat-remix-gtk.git
-cd /home/${ARCH_USER}/flat-remix-gtk
-sudo -u ${ARCH_USER} makepkg -s
-pacman -U ./flat-remix-gtk*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/flat-remix-gtk
 
 rm -rf /usr/share/themes/Flat-Remix-GTK-Black-*
 
@@ -1257,42 +842,6 @@ rm -rf /usr/share/themes/Flat-Remix-GTK-White-Darke*
 rm -rf /usr/share/themes/Flat-Remix-GTK-White-Solid
 rm -rf /usr/share/themes/Flat-Remix-GTK-White-Light*
 
-# +-+-+-+-+-+-+-+-+-+
-# HARDINFO-GIT
-# +-+-+-+-+-+-+-+-+-+
-
-cd ${ARCHBANGRETRO_FOLDER}
-git clone https://github.com/Mordillo98/hardinfo-0.6-alpha
-cd hardinfo-0.6-alpha
-cmake -B build -S . \
-		-DCMAKE_BUILD_TYPE='Debug' \
-		-DCMAKE_INSTALL_PREFIX='/usr' \
-		-DCMAKE_INSTALL_LIBDIR='lib' \
-		-DHARDINFO_GTK3='ON' \
-		-DHARDINFO_DEBUG='$(usex debug 1 0)' \
-		-Wno-dev
-
-make -C build
-
-make -C build DESTDIR="$pkgdir" install
-
-# cd /home/${ARCH_USER}
-# sudo -u ${ARCH_USER} git clone https://aur.archlinux.org/hardinfo-git.git
-# cd /home/${ARCH_USER}/hardinfo-git
-# sudo -u ${ARCH_USER} makepkg -s
-# pacman -U ./hardinfo-git*.pkg.tar.zst --noconfirm
-# rm -rf /home/${ARCH_USER}/hardinfo-git
-
-# +-+-+-+-+-+-+-+-+-+-+-+-+
-# GNOME-DISK-UTILITY-3.4.1
-# +-+-+-+-+-+-+-+-+-+-+-+-+
-
-cd /home/${ARCH_USER}
-mkdir gnome-disk-utility-3.4.1
-cd /home/${ARCH_USER}/gnome-disk-utility-3.4.1
-curl -fLO https://sourceforge.net/projects/archbangretro/files/gnome-disk-utility-3.4.1-3.4.1-1-x86_64.pkg.tar.zst
-pacman -U ./gnome-disk-utility-3.4.1*.pkg.tar.zst --noconfirm
-rm -rf /home/${ARCH_USER}/gnome-disk-utility-3.4.1
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 # SLIM THEMES AND CONFIGURATION
@@ -1374,27 +923,6 @@ gawk -i inplace '!/OnlyShowIn/' /etc/xdg/autostart/xfce4-notifyd.desktop
 # MHWD-MANJARO INSTALL
 # +-+-+-+-+-+-+-+-+-+-+
 
-# cd /home/${ARCH_USER}
-
-# mv /opt/$(basename "$MANJARO_FILE_URL") /home/${ARCH_USER}
-# sudo -u ${ARCH_USER} tar -xvf $(basename "$MANJARO_FILE_URL") -C /
-
-# cd /home/${ARCH_USER}/mhwd-manjaro/
-
-# pacman -U ./v86d-0.1.10-6-x86_64.pkg.tar.zst --noconfirm
-# pacman -U ./mhwd-amdgpu-19.1.0-1-any.pkg.tar.zst --noconfirm
-# pacman -U ./mhwd-ati-19.1.0-1-any.pkg.tar.zst --noconfirm
-# pacman -U ./mhwd-nvidia-390xx-390.157-6-any.pkg.tar.zst --noconfirm
-# pacman -U ./mhwd-nvidia-470xx-470.182.03-2-any.pkg.tar.zst --noconfirm
-# pacman -U ./mhwd-nvidia-530.41.03-4-any.pkg.tar.zst --noconfirm
-# pacman -U ./mhwd-db-0.6.5-25-any.pkg.tar.zst --noconfirm
-# pacman -U ./mhwd-0.6.5-25-x86_64.pkg.tar.zst --noconfirm
-
-# cd /home/${ARCH_USER}
-
-# rm -rf /home/${ARCH_USER}/mhwd-manjaro
-# rm -f $(basename "$MANJARO_FILE_URL")
-
 if [ ${NVIDIA} = "YES" ]; then
   
   if [ ${NVIDIA_LEGACY} = "YES" ]; then
@@ -1422,6 +950,11 @@ else
   mhwd -a pci free 0300
 fi
 
+# +-+-+-+-+-+-+-+-+-
+# TTF-MS-WIN11-AUTO
+# +-+-+-+-+-+-+-+-+-
+
+pacman -Ssq ttf-ms-win11-auto | xargs sudo pacman -S --noconfirm
 
 # +-+-+-+-+-+-+-+-+-+-+
 # CLEANUP OPENBOX MENU

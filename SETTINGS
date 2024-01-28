@@ -60,10 +60,13 @@ NVIDIA_LEGACY="NO"
 # Define the URL of the file and its expected MD5 checksum
 
 ARCHBANGRETRO_FILE_URL=https://sourceforge.net/projects/archbangretro/files/archbangretro.tar.xz
-ARCHBANGRETRO_EXPECTED_MD5=c842726c2f353719e0c34987db12d25c
+ARCHBANGRETRO_EXPECTED_MD5=d44cd4e9efdb21f0de8e980f28f82fa0
 
 # Specify the URL of the MANJARO_GPG_FILE
 MANJARO_GPG_URL="https://gitlab.manjaro.org/packages/core/manjaro-keyring/-/raw/master/manjaro.gpg"
 
 # Specify the URL of the directory containing the mhwd files from Manjaro
 MHWD_URL="https://mirror.csclub.uwaterloo.ca/manjaro/stable/extra/x86_64/"
+
+# REPO LOCATION
+ARCHBANGRETRO_REPO="192.168.190.150:/media/HDD/archbangretro"
