@@ -69,5 +69,5 @@ MANJARO_GPG_URL="https://gitlab.manjaro.org/packages/core/manjaro-keyring/-/raw/
 MHWD_URL="https://mirror.csclub.uwaterloo.ca/manjaro/stable/extra/x86_64/"
 
 # REPO LOCATIONS
-ARCHBANGRETRO_REPO="192.168.190.175:/repos/archbangretro"
-ARCHLINUX_REPO="192.168.190.175:/repos/archlinux"
+ARCHBANGRETRO_REPO=""
+ARCHLINUX_REPO=""
