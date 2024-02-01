@@ -228,6 +228,13 @@ countsleep "Automatic install will start in... " 3
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 printf "${CYAN}Updating archlinux's repos.\n${NC}"
+
+
+TARGET_DIRECTORY="/mnt/"
+umount /mnt >/dev/null 2>&1
+mount -t cifs ${ARCHBANGRETRO_REPO} ${TARGET_DIRECTORY} -o username=mfilion
+# mount -t cifs ${ARCHBANGRETRO_REPO} ${TARGET_DIRECTORY} -o guest
+
 pacman -Sy > /dev/null
 
 if ! pacman -Qs dmidecode > /dev/null ; then
@@ -261,13 +268,15 @@ timedatectl set-ntp true
 # +-+-+-+-+-+-+-+-+-+-+-
 
 # Specify the directory where the files will be downloaded and extracted
-TARGET_DIRECTORY="/mnt/"
+# TARGET_DIRECTORY="/mnt/"
 
-umount /mnt >/dev/null 2>&1
+# umount /mnt >/dev/null 2>&1
 
-mount ${ARCHBANGRETRO_REPO} ${TARGET_DIRECTORY}
+# mount -t cifs ${ARCHBANGRETRO_REPO} ${TARGET_DIRECTORY} -o username=mfilion
+# mount -t cifs ${ARCHBANGRETRO_REPO} ${TARGET_DIRECTORY} -o guest
 
-# START DEBUG HERE IF NEEDED WITH    : '
+# START DEBUG / SKIP  HERE IF NEEDED WITH    : '
+: '
 
 #
 # DEFINE SCRIPT THAT CHECKS IF THERE ARE FILE, IF SO ASK TO DELETE.
@@ -478,6 +487,8 @@ repo-add ${TARGET_DIRECTORY}archbangretro.db.tar.gz ./python2-bin*.pkg.tar.zst
 cp ./python2-bin*.pkg.tar.zst ${TARGET_DIRECTORY}
 rm -rf /home/${ARCH_USER}/python2-bin
 
+'
+
 # +-+-+-+-+-+-+-+-+-+
 # PYTHON2-SETUPTOOLS
 # +-+-+-+-+-+-+-+-+-+
@@ -487,6 +498,8 @@ sudo -u ${ARCH_USER} curl -fLO https://archive.archlinux.org/packages/p/python2-
 repo-add ${TARGET_DIRECTORY}archbangretro.db.tar.gz ./python2-setuptools*.pkg.tar.zst 
 cp ./python2-setuptools*.pkg.tar.zst ${TARGET_DIRECTORY}
 rm -rf /home/${ARCH_USER}/python2-setuptools*.pkg.tar.zst 
+
+exit
 
 # +-+-+-+-+
 # CYTHON2
