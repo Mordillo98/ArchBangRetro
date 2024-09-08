@@ -4,7 +4,7 @@
 # VARIABLES
 # +-+-+-+-+-
 
-FIRMWARE="UEFI"                # Choose BIOS or UEFI
+FIRMWARE="BIOS"               # Choose BIOS or UEFI
 
 DRIVE="/dev/sda"              # This drive will be formatted
 DRIVE_PART1=${DRIVE}1         # boot partition
@@ -18,9 +18,9 @@ KEYMAP="us"
 
 HOSTNAME="archbangretrobox"
 
-ARCH_USER="archretrouser"
-USER_PSW="archretropsw"
-ROOT_PSW="archretroroot"
+ARCH_USER="arch"
+USER_PSW="archpsw"
+ROOT_PSW="rootpsw"
 
 REFLECTOR_COUNTRY="Canada"
 
@@ -60,7 +60,7 @@ NVIDIA_LEGACY="NO"
 # Define the URL of the file and its expected MD5 checksum
 
 ARCHBANGRETRO_FILE_URL=https://sourceforge.net/projects/archbangretro/files/archbangretro.tar.xz
-ARCHBANGRETRO_EXPECTED_MD5=d44cd4e9efdb21f0de8e980f28f82fa0
+ARCHBANGRETRO_EXPECTED_MD5=ed771fb990d5788ecc9fff2c3502f6cb
 
 # Specify the URL of the MANJARO_GPG_FILE
 MANJARO_GPG_URL="https://gitlab.manjaro.org/packages/core/manjaro-keyring/-/raw/master/manjaro.gpg"
@@ -68,5 +68,10 @@ MANJARO_GPG_URL="https://gitlab.manjaro.org/packages/core/manjaro-keyring/-/raw/
 # Specify the URL of the directory containing the mhwd files from Manjaro
 MHWD_URL="https://mirror.csclub.uwaterloo.ca/manjaro/stable/extra/x86_64/"
 
-# REPO LOCATION
-ARCHBANGRETRO_REPO=""
+# REPO LOCATIONS
+AURBIN_REPO="/dev/sdb2"
+AURBIN_LOCATION="/opt/repos/aurbin/"
+ARCHLINUX_REPO="/dev/sdb2"
+
+SCRIPTS_DIR=/opt/archbangretro/scripts
+CURRENT_DIR=$(pwd)
