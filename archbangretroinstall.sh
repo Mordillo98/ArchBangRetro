@@ -1,55 +1,26 @@
 #!/bin/bash
 
 # set -e  # Script must stop if there is an error.
+# set -x
 
 # +-+-+-+-+
 # SETTINGS
 # +-+-+-+-+
 
 # Reads the SETTINGS file to define global variables.
-source ./SETTINGS
+
+# Check if the SETTINGS file exists
+if [ -e "./SETTINGS" ]; then
+    source "./SETTINGS"
+else
+    echo "Error: SETTINGS file not found. Please make sure the file exists."
+    exit 1
+fi
 
 #
 # FUNCTIONS
 # ========
 # 
-
-# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-# AVAILABLE_MEMORY
-# ================
-#
-# Will determine what is the current memory,
-# add 1GB to it and make it the swap size when
-# formatting the HD.
-# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
-function make_swap_size () {
-
-  # Use dmidecode to get information about the installed memory on the system.
-  # Use awk to extract the sizes of the memory modules.
-  # Use numfmt to convert these sizes to bytes.
-  # Use awk to calculate the total memory size.
-  # Use numfmt again to convert the total size back to a human-readable format with a whole number.
-
-  physical_memory=$(
-	dmidecode -t memory |
-	awk '$1 == "Size:" && $2 ~ /^[0-9]+$/ {print $2$3}' |
-	numfmt --from=iec --suffix=B |
-	awk '{total += $1}; END {print total}' |
-	numfmt --to=iec --suffix=B --format=%0f
-  )
-
-  # Extract the integer portion of the physical_memory variable and increment it by one.
-  # This is often recommended to set the swap size to be equal to or slightly larger than the amount of physical memory in the system.
-
-  SWAP_SIZE=${physical_memory%.*}
-  SWAP_SIZE=$((SWAP_SIZE+1))
-
-  # Multiply the integer value of physical_memory by 1024, which converts the value from megabytes to kilobytes.
-  # Swap sizes are often specified in kilobytes.
-
-  SWAP_SIZE=$((SWAP_SIZE * 1024))
-}
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-
 # YES_OR_NO (question, default answer)
@@ -141,6 +112,7 @@ function countsleep {
 # ===========	
 # 
 
+
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 # NEED TO BE RAN WITH ADMIN PRIVILEGES
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -151,6 +123,7 @@ if [ "$EUID" -ne 0 ]
   exit
 fi
 
+
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 # ENABLE ALL OUTPUTS TO BE SENT
 # TO LOG.OUT DURING THE SCRIPT
@@ -160,11 +133,23 @@ fi
 echo ""
 yes_or_no "Would you like to have the outputs into log.out?" "n"
 
-if [ "$Y_N_ANSWER" == Y ]; then
+if [ "$Y_N_ANSWER" == "Y" ]; then
+  # Create a temporary named pipe (FIFO)
+  TEMP_FIFO=$(mktemp -u)
+  mkfifo "$TEMP_FIFO"
   exec 3>&1 4>&2
-  trap 'exec 2>&4 1>&3' 0 1 2 3
-  exec 1>log.out 2>&1
+  
+  # Start a background process to read from the pipe and write to both the log file and stdout
+  tee log.out < "$TEMP_FIFO" &
+  TEE_PID=$!
+  
+  # Redirect stdout and stderr to the named pipe
+  exec > "$TEMP_FIFO" 2>&1
+  
+  # Ensure cleanup on script exit
+  trap 'exec 1>&3 2>&4; rm -f "$TEMP_FIFO"; if kill -0 "$TEE_PID" 2>/dev/null; then kill "$TEE_PID"; fi' EXIT
 fi
+
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 # SHOW THE PARAMETERS ON SCREEN
@@ -183,11 +168,8 @@ printf "${GREEN}HOSTNAME    = ${CYAN}${HOSTNAME}\n\n"
 printf "${GREEN}ARCH_USER   = ${CYAN}${ARCH_USER}\n"
 printf "${GREEN}USER_PSW    = ${CYAN}${USER_PSW}\n"
 printf "${GREEN}ROOT_PSW    = ${CYAN}${ROOT_PSW}\n\n"
-printf "${GREEN}MIRRORS COUNTRY = ${CYAN}${REFLECTOR_COUNTRY}\n\n"
 printf "${GREEN}NVIDIA        = ${CYAN}${NVIDIA}\n"
 printf "${GREEN}NVIDIA_LEGACY = ${CYAN}${NVIDIA_LEGACY}\n\n"
-
-printf "${GREEN}ARCHBANGRETRO_REPO = ${CYAN}${ARCHBANGRETRO_REPO}\n\n"
 
 printf "${WHITE}*********************************************${NC}\n\n"
 
@@ -208,37 +190,59 @@ printf "${GREEN}ROOT = ${CYAN}${DRIVE_PART3}\n\n"
 # launched too early.
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 
-countsleep "Automatic install will start in... " 30 
+# countsleep "Automatic install will start in... " 30 
+
+# Initialize the time counter and set the timeout duration
+TIMEOUT=30
+INTERVAL=1
+TIME_ELAPSED=0
+PACMAN_KEYS_DIR="/etc/pacman.d/gnupg"
+
+# Function to check if pacman keys are initialized
+are_keys_initialized() {
+    if [ -d "$PACMAN_KEYS_DIR" ]; then
+        pacman-key --list-keys > /dev/null 2>&1
+        return $?
+    else
+        return 1
+    fi
+}
+
+# Check if the pacman keys are already initialized
+if are_keys_initialized; then
+    printf "\n${WHITE}Pacman keys have been initialized.${NC}\n\n"
+else
+    printf "\n${YELLOW}Waiting for pacman keys to be initialized..."
+    # Loop until the pacman keys are properly initialized or the timeout is reached
+    while [ $TIME_ELAPSED -lt $TIMEOUT ]; do
+        if are_keys_initialized; then
+            printf "\n\n${WHITE}Pacman keys have been initialized.${NC}\n\n"
+            break
+        fi
+        printf "."
+        sleep $INTERVAL
+        TIME_ELAPSED=$((TIME_ELAPSED + INTERVAL))
+    done
+
+    # If the loop exits without finding the keys, print the error message and exit
+    if [ $TIME_ELAPSED -ge $TIMEOUT ]; then
+        printf "\n\n${WHITE}Pacman keys are not initialized.\n"
+	printf "Verify your network connection, and try again...${NC}\n\n"
+        exit 1
+    fi
+fi
+
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 # INSTALL THE NEEDED DEPENDENCIES 
 # TO RUN THIS SCRIPT FROM ARCH LIVE CD
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
-printf "${CYAN}Updating archlinux's repos.\n${NC}"
-pacman -Sy > /dev/null
+printf "${CYAN}Updating archlinux's repos.\n\n${NC}"
+pacman -Sy 
 
-if ! pacman -Qs dmidecode > /dev/null ; then
-	printf "Installing dmidecode...\n"
-	pacman -S dmidecode --noconfirm > /dev/null
-fi
+echo
 
-if ! pacman -Qs reflector > /dev/null ; then
-	printf "Installing reflector...\n"
-	pacman -S reflector --noconfirm > /dev/null
-fi
-
-printf "\n${NC}"
-
-# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-# ENABLE MIRRORS FROM $MIRROR_LINK
-# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
-printf "${YELLOW}Setting up best mirrors from ${REFLECTOR_COUNTRY} for this live session.\n\n${NC}" 
-
-reflector --country ${REFLECTOR_COUNTRY} --sort delay --score 5 --protocol https --save /etc/pacman.d/mirrorlist
-
-countsleep "Partitioning the disk will start in... " 5
 
 # +-+-+-+-+-+-+-+-+-+-+-+-
 # UPDATE THE SYSTEM CLOCK 
@@ -246,67 +250,33 @@ countsleep "Partitioning the disk will start in... " 5
 
 timedatectl set-ntp true
 
-# +-+-+-+-+-+-+-+-+-+-
-# PARTITION THE DISKS
-# +-+-+-+-+-+-+-+-+-+-
 
-make_swap_size
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+# PARTITION AND FORMAT THE DISKS
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
-if mount | grep /mnt > /dev/null; then
-  umount -R /mnt
-fi 
+countsleep "Partitioning the disk will start in... " 5
 
-wipefs -a $DRIVE --force 
+cd ${CURRENT_DIR}
+source ./format_hd.sh
 
-if [ ${FIRMWARE} = "BIOS" ]; then
-  parted -a optimal $DRIVE --script mklabel msdos
-  parted -a optimal $DRIVE --script unit mib
-
-  parted -a optimal $DRIVE --script mkpart primary 2048 3072
-  parted -a optimal $DRIVE --script set 1 boot on
-
-  parted -a optimal $DRIVE --script mkpart primary 3072 $SWAP_SIZE
-
-  parted -a optimal $DRIVE --script mkpart primary $SWAP_SIZE -- -1
-
-else
-  parted -a optimal $DRIVE --script mklabel gpt
-  parted -a optimal $DRIVE --script unit mib
-
-  parted -a optimal $DRIVE --script mkpart primary 1 1025
-  parted -a optimal $DRIVE --script name 1 boot
-  parted -a optimal $DRIVE --script set 1 boot on
-
-  parted -a optimal $DRIVE --script mkpart primary 1025 $SWAP_SIZE
-  parted -a optimal $DRIVE --script name 2 swap
-
-  parted -a optimal $DRIVE --script mkpart primary $SWAP_SIZE -- -1
-  parted -a optimal $DRIVE --script name 3 rootfs
-
-fi
-
-
-# +-+-+-+-+-+-+-+-+-+-+-
-# FORMAT THE PARTITIONS
-# +-+-+-+-+-+-+-+-+-+-+-
-
-if [ ${FIRMWARE} = "BIOS" ]; then
-  yes | mkfs.ext2 ${DRIVE_PART1}
-else
-  yes | mkfs.fat -F32 ${DRIVE_PART1}
-fi
-
-yes | mkswap ${DRIVE_PART2}
-yes | swapon ${DRIVE_PART2}
-yes | mkfs.ext4 ${DRIVE_PART3}
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 # MOUNT THE NEWLY CREATED PARTITIONS
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 mount /${DRIVE_PART3} /mnt
-mkdir /mnt/boot
+mkdir -p /mnt/boot
 mount ${DRIVE_PART1} /mnt/boot
+
+mkdir -p /mnt/etc/pacman.d/
+
+
+# +-+-+-+-+-+-+-+-+
+# SETUP /ETC/FSTAB
+# +-+-+-+-+-+-+-+-+
+
+genfstab -U /mnt >> /mnt/etc/fstab
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 # ARCHBANGRETRO (where the magic starts :)
@@ -322,10 +292,10 @@ cd /mnt${ARCHBANGRETRO_FOLDER}
 
 printf "\n${CYAN}ARCHBANGRETRO_FILE_URL = ${YELLOW}${ARCHBANGRETRO_FILE_URL}${NC}\n\n"
 
-curl -fLO "${ARCHBANGRETRO_FILE_URL}"
+curl -L -o archbangretro.tar.xz "${ARCHBANGRETRO_FILE_URL}"
 ACTUAL_MD5=$(md5sum "$(basename "${ARCHBANGRETRO_FILE_URL}")" | awk '{ print $1 }')
 
-# Compare the expected and actual MD5 checksums
+Compare the expected and actual MD5 checksums
 if [[ "${ARCHBANGRETRO_EXPECTED_MD5}" == "${ACTUAL_MD5}" ]]; then
    printf "\n${GREEN}File download successful and MD5 checksum verified${NC}\n\n"
    sleep 2
@@ -338,36 +308,126 @@ fi
 tar -xvf $(basename "$ARCHBANGRETRO_FILE_URL")
 rm -f $(basename "$ARCHBANGRETRO_FILE_URL")
 
+
+# +-+-+-+-+-+
+# ALPM-HOOKS
+# +-+-+-+-+-+
+
+cd ${CURRENT_DIR}
+source ./pacman_hooks.sh ${ARCHBANGRETRO_FOLDER} "/mnt/etc/pacman.d/hooks/"
+
+rmdir /etc/pacman.d/hooks
+ln -s /mnt/etc/pacman.d/hooks /etc/pacman.d/
+
+
 # +-+-+-+-+-+-+-+-
 # ENABLE MULTILIB
 # +-+-+-+-+-+-+-+-
 
+printf "\n${WHITE}Enabling [MULTILIB] repo...\n\n${NC}" 
+
 sed -i "/\[multilib\]/,/Include/"'s/^#//' /etc/pacman.conf
+
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 # ADD ARCHBANGRETRO LOCAL REPO
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
-printf "\n[archbangretro]\n" >> /etc/pacman.conf
-printf "SigLevel = Optional\n" >> /etc/pacman.conf
-printf "Server = file:///mnt/archbangretro/\n" >> /etc/pacman.conf
+cd ${CURRENT_DIR}
+source ./aurbin_repo.sh
 
-mkdir /mnt/archbangretro
-chmod 777 /mnt/archbangretro
-mount ${ARCHBANGRETRO_REPO} /mnt/archbangretro
+
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+# ENABLE BEST MIRRORS FOR PACMAN
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+# Get your public IP and country
+IP=$(curl -s ifconfig.me)
+REFLECTOR_COUNTRY=$(curl -s https://ipinfo.io/${IP}/country)
+
+printf "${YELLOW}Setting up best 5 https mirrors from ${REFLECTOR_COUNTRY} for this install.\n\n${NC}" 
+
+reflector --country "${REFLECTOR_COUNTRY}" --age 6 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
+
+pacman -Sy > /dev/null
+
+# Define the file path
+FILE_PATH="/etc/pacman.conf"
+
+# Backup the original file before modifying
+cp "$FILE_PATH" "${FILE_PATH}.bak"
+
+# Uncomment the line and set the value for ParallelDownloads
+sed -i 's/#ParallelDownloads = 5/ParallelDownloads = 5/' "$FILE_PATH"
+
+printf "${CYAN}PACMAN parallel downloads is now enabled.\n\n${CYAN}"
+
+
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+# REMOVE UNWANTED DESKTOP FILES DURING PACMAN INSTALLS
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+cd ${CURRENT_DIR}
+source ./no_desktop_files.sh
+
+
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+# BACKUP PACMAN.CONF INTO CHROOT SESSION
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+cp /etc/pacman.conf /mnt/etc/pacman.conf.bck
+
+
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
+# COPYING MIRRORLIST TO NEW INSTALLATION
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
+
+cp /etc/pacman.d/mirrorlist /mnt/etc/pacman.d/
+
+
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+# MAKING SURE CREATING THE INITRAMFS IS FAST
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+printf "${WHITE}Making sure the initramfs creation will be fast.\n\n${NC}"
+
+# Define the new HOOKS line
+NEW_HOOKS="HOOKS=(base udev autodetect modconf block filesystems keyboard fsck)"
+
+# Path to the mkinitcpio.conf file
+MKINITCPIO_CONF="/etc/mkinitcpio.conf"
+
+cp ${MKINITCPIO_CONF} ${MKINITCPIO_CONF}.bck
+
+# Use sed to replace the HOOKS line
+sed -i "s/^HOOKS=.*/${NEW_HOOKS}/" ${MKINITCPIO_CONF}
+
+# Uncomment the COMPRESSION line and set it to lz4
+sed -i "s/^#COMPRESSION=\"lz4\"/COMPRESSION=\"lz4\"/" ${MKINITCPIO_CONF}
+
+CONFIG_FILE="/etc/makepkg.conf"
+SEARCH_PATTERN="#MAKEFLAGS"
+REPLACEMENT="MAKEFLAGS=\"-j\$(nproc)\""
+
+cp ${CONFIG_FILE} ${CONFIG_FILE}.bck
+sed -i "s|^$SEARCH_PATTERN.*|$REPLACEMENT|" "$CONFIG_FILE"
+
+cp ${MKINITCPIO_CONF} /mnt${MKINITCPIO_CONF}
+cp ${CONFIG_FILE} /mnt${CONFIG_FILE}
+
 
 # +-+-+-+-+-+-+-+-+
 # INSTALL PACKAGES
 # +-+-+-+-+-+-+-+-+
 
 EDITOR="vim nano"
-CATFISH_DEPENDENCIES="dbus-python python-pyxdg"
-DEPENDENCIES="autoconf-archive hwinfo nfs-utils go gnome-themes-standard git intltool python-cairo python-gobject python-pillow libxft libxinerama gdk-pixbuf-xlib python-distutils-extra cmake cblas lapack gcc-fortran"
+# CATFISH_DEPENDENCIES="dbus-python"
+# DEPENDENCIES="autoconf-archive hwinfo nfs-utils go gnome-themes-standard git intltool python-cairo python-gobject python-pillow libxft libxinerama gdk-pixbuf-xlib python-distutils-extra cmake cblas lapack gcc-fortran"
 XORG="xorg-server xorg-xinit xorg-xkill"
-OPENBOX="openbox ttf-dejavu ttf-liberation"
+OPENBOX="openbox ttf-dejavu ttf-liberation python-pyxdg"
 OPENBOX_MENU="glib2 gtk2 menu-cache gnome-menus lxmenu-data"
-AUR_APPS="mhwd-manjaro-bin python2-bin python2-setuptools cython2 gnome-icon-theme-symbolic gnome-icon-theme yay obmenu2-git batti-icons oblogout-py3-git python2-gobject2 python2-gobject2 deadbeef libglade python2-cairo python2-numpy pygtk python2-dbus obkey dmenu2 gnome-carbonate gnome-colors-icon-theme-bin archbangretro-wallpaper openbox-menu fbxkb openbox-themes archbey epdfview madpablo-theme flat-remix-gtk hardinfo-git gnome-disk-utility-3.4.1 httpdirfs          "
-ARCHBANG_APPS="catfish reflector lxterminal lxappearance lxappearance-obconf lxinput leafpad gucharmap pcmanfm galculator parcellite xarchiver shotwell htop arandr obconf tint2 conky xcompmgr nitrogen scrot exo gnome-mplayer xfburn libfm-gtk2 gmrun slim packer arj cronie dialog dnsutils gnome-keyring gsimplecal gtk-engine-murrine gtk-engines inetutils jfsutils logrotate lzop memtest86+ modemmanager ntfs-3g p7zip reiserfsprogs rsync squashfs-tools syslinux tcl unrar unzip usb_modeswitch zip gvfs cbatticon xdg-utils"
+AUR_APPS="archbangretro-wallpaper archbey batti-icons deadbeef dmenu epdfview-git fbxkb flat-remix-gtk gnome-carbonate gnome-disk-utility-3.4.1 gnome-icon-theme gnome-icon-theme-symbolic hardinfo-git httpdirfs madpablo-theme mhwd-manjaro-bin obkey-python3 oblogout-py3-git obmenu2-git openbox-menu openbox-themes python-gettext ttf-ms-win11-auto ttf-ms-win11-auto-japanese ttf-ms-win11-auto-korean ttf-ms-win11-auto-other ttf-ms-win11-auto-sea ttf-ms-win11-auto-thai ttf-ms-win11-auto-zh_cn ttf-ms-win11-auto-zh_tw yay-bin"
+ARCHBANG_APPS="catfish reflector lxterminal lxappearance lxappearance-obconf lxinput leafpad gucharmap pcmanfm galculator parcellite xarchiver shotwell htop arandr obconf tint2 conky xcompmgr nitrogen scrot exo gnome-mplayer xfburn libfm-gtk2 gmrun slim packer arj cronie dialog dnsutils gnome-keyring gsimplecal gtk-engine-murrine gtk-engines inetutils jfsutils logrotate lzop memtest86+ modemmanager ntfs-3g p7zip reiserfsprogs rsync squashfs-tools syslinux tcl unrar unzip usb_modeswitch zip gvfs cbatticon xdg-utils pv nfs-utils glxinfo speech-dispatcher unclutter xdotool"
 ARCHBANG_ICONS="gtk-update-icon-cache hicolor-icon-theme librsvg icon-naming-utils intltool" 
 CODECS="a52dec faac faad2 jasper lame libdca libdv libmad libmpeg2 libtheora libvorbis libxv wavpack x264 xvidcore gstreamer"
 SOUND="volumeicon alsa-utils pulseaudio alsa-firmware alsa-oss"
@@ -375,12 +435,20 @@ NETWORK="network-manager-applet broadcom-wl xfce4-notifyd"
 BROWSER="firefox"
 XF86="xf86-input-elographics xf86-input-evdev xf86-input-libinput xf86-input-synaptics xf86-input-vmmouse xf86-input-void xf86-input-wacom"
 FONTS_WIN11="p7zip udisks2 curl expat fuse2 gumbo-parser doxygen help2man"
+SYSLINUX="syslinux gptfdisk mtools efibootmgr"
+FIRMWARE="ast-firmware upd72020x-fw linux-firmware-qlogic aic94xx-firmware wd719x-firmware"
 CALAMARES="qt5 kpmcore yaml-cpp boost extra-cmake-modules kiconthemes5"
 
 
 # XF86="xf86-input-elographics xf86-input-evdev xf86-input-libinput xf86-input-synaptics xf86-input-vmmouse xf86-input-void xf86-input-wacom xf86-video-amdgpu xf86-video-ati xf86-video-dummy xf86-video-fbdev xf86-video-intel xf86-video-nouveau xf86-video-openchrome xf86-video-sisusb xf86-video-vesa xf86-video-vmware xf86-video-voodoo xf86-video-qxl"
 
-pacstrap /mnt base base-devel linux-lts linux-lts-headers linux-firmware man-db man-pages texinfo grub efibootmgr $AUR_APPS $EDITOR $DEPENDENCIES $CATFISH_DEPENDENCIES $XORG $OPENBOX $OPENBOX_MENU $ARCHBANG_APPS $ARCHBANG_ICONS $CODECS $SOUND $NETWORK $BROWSER $XF86 $FONTS_WIN11 $CALAMARES 
+pacstrap /mnt base base-devel linux linux-headers linux-firmware man-db man-pages texinfo grub efibootmgr $AUR_APPS $EDITOR $XORG $OPENBOX $OPENBOX_MENU $ARCHBANG_APPS $ARCHBANG_ICONS $CODECS $SOUND $NETWORK $BROWSER $XF86 $FONTS_WIN11 $SYSLINUX $FIRMWARE $CALAMARES 
+
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
+# COPYING MAKEPKG.CONF TO ARCHBANGRETRO
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
+
+cp /etc/makepkg.conf /mnt/etc/makepkg.conf
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 # COPYING MIRROR LIST TO ARCHBANGRETRO
@@ -388,11 +456,13 @@ pacstrap /mnt base base-devel linux-lts linux-lts-headers linux-firmware man-db 
 
 cp /etc/pacman.d/mirrorlist /mnt/etc/pacman.d/
 
-# +-+-+-+-+-+-+-+-+
-# SETUP /ETC/FSTAB
-# +-+-+-+-+-+-+-+-+
+#
+# COPY SCRIPTS FOR CHROOT
+#
 
-genfstab -U /mnt >> /mnt/etc/fstab
+mkdir -p /mnt${SCRIPTS_DIR} > /dev/null 
+cp -R ${CURRENT_DIR}/* /mnt${SCRIPTS_DIR}
+printf "${WHITE}\nAll files copied to ${YELLOW}/mnt${SCRIPTS_DIR}${NC}\n\n"
 
 # +-+-+-+-+-+-+-
 # CHROOT SCRIPT
@@ -400,32 +470,12 @@ genfstab -U /mnt >> /mnt/etc/fstab
 
 arch-chroot /mnt /bin/bash << EOF
 
-# +-+-+-+-+-+-+-+-
-# ENABLE MULTILIB
-# +-+-+-+-+-+-+-+-
+# +-+-+-+-+-+-
+# PACMAN.CONF
+# +-+-+-+-+-+-
 
-sed -i "/\[multilib\]/,/Include/"'s/^#//' /etc/pacman.conf
-
-# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-# ADD ARCHBANGRETRO LOCAL REPO
-# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
-printf "\n[archbangretro]\n" >> /etc/pacman.conf
-printf "SigLevel = Optional\n" >> /etc/pacman.conf
-printf "Server = file:///archbangretro/\n" >> /etc/pacman.conf
-
-#
-# Needs to wait for networking to start in order for /etc/fstab to 
-# load network mounts.
-#
-
-printf "[Unit]\nDescription=Mount /etc/fstab after networking services\nWants=network-online.target\nAfter=network-online.target\n\n[Service]\nType=oneshot\nExecStartPre=/bin/sleep 10\nExecStart=/bin/mount -a\nTimeoutSec=30\n\n[Install]\nWantedBy=multi-user.target\n" > /etc/systemd/system/mnt-fstab.service
-
-systemctl daemon-reload
-systemctl enable mnt-fstab.service
-systemctl start mnt-fstab.service
-
-pacman -Sy 
+cp /etc/pacman.conf /etc/pacman.conf.chroot
+cp /etc/pacman.conf.bck /etc/pacman.conf 
 
 # +-+-+-+-+-+ 
 # TIME ZONE
@@ -471,13 +521,8 @@ echo "root:${ROOT_PSW}" | chpasswd
 # INSTALL BOOTLOADER
 # +-+-+-+-+-+-+-+-+-+
 
-if [ ${FIRMWARE} = "BIOS" ]; then
-  grub-install --target=i386-pc ${DRIVE}
-else
-  grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
-fi
-
-grub-mkconfig -o /boot/grub/grub.cfg
+cd ${SCRIPTS_DIR}
+source ./bootloader_grub.sh
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+
 # VI --> VIM symbolink link.
@@ -485,11 +530,17 @@ grub-mkconfig -o /boot/grub/grub.cfg
 
 ln -s /usr/bin/vim /usr/bin/vi
 
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
+# CLS --> CLEAR symbolink link.
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
+
+ln -s /usr/bin/clear /usr/bin/cls
+
 # +-+-+-+-+-
 # NETWORKING
 # +-+-+-+-+-
 
-systemctl enable NetworkManager.service
+# systemctl enable NetworkManager.service
 
 # +-+-+-+-+-+-+-+
 # ENABLE OPENSSH
@@ -514,6 +565,7 @@ mkdir -p /etc/skel/.config
 mkdir -p /etc/skel/.icons
 mkdir -p /etc/skel/.local/share/file-manager/actions/
 mkdir -p /etc/skel/.mozilla
+mkdir -p /etc/skel/.screenlayout
 
 cp ${ARCHBANGRETRO_FOLDER}/skel/conkyrc /etc/skel/.conkyrc
 cp ${ARCHBANGRETRO_FOLDER}/skel/conkyrc1 /etc/skel/.conkyrc1
@@ -523,6 +575,7 @@ cp -R ${ARCHBANGRETRO_FOLDER}/skel/CONFIG/* /etc/skel/.config/
 cp ${ARCHBANGRETRO_FOLDER}/skel/gtkrc-2.0 /etc/skel/.gtkrc-2.0
 cp ${ARCHBANGRETRO_FOLDER}/skel/local/terminal.desktop /etc/skel/.local/share/file-manager/actions/
 cp -R ${ARCHBANGRETRO_FOLDER}/skel/mozilla/* /etc/skel/.mozilla
+# cp -R ${ARCHBANGRETRO_FOLDER}/skel/screenlayout/* /etc/skel/.screenlayout
 
 cat > "/etc/skel/.xinitrc" << "EOT"
 exec openbox-session
@@ -532,223 +585,18 @@ EOT
 # CREATE USER
 # +-+-+-+-+-+-
 
-useradd -m -G wheel -s /bin/bash $ARCH_USER
+useradd -m -G wheel,disk -s /bin/bash $ARCH_USER
 
 echo "${ARCH_USER}:${USER_PSW}" | chpasswd
 
 sed -i 's/# %wheel ALL=(ALL:ALL) NOPASSWD: ALL/%wheel ALL=(ALL:ALL) NOPASSWD: ALL/' /etc/sudoers
 
-# +-+-+-+-+-+
-# ALPM-HOOKS
-# +-+-+-+-+-+
-
-mkdir -p /etc/pacman.d/hooks
-
-   # +-+-+-+-
-   # PCMANFM
-   # +-+-+-+-
-
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/pcmanfm_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/pcmanfm_install.hook
-   printf "rm /usr/share/applications/pcmanfm-desktop-pref.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/pcmanfm_install.sh
-   printf "cp ${ARCHBANGRETRO_FOLDER}/applications/pcmanfm.desktop /usr/share/applications/" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/pcmanfm_install.sh
-
-   # +-+-+-+-+-
-   # CBATTICON
-   # +-+-+-+-+-
-
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/cbatticon_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/cbatticon_install.hook
-   printf "cp ${ARCHBANGRETRO_FOLDER}/applications/batti.desktop /usr/share/applications/" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/cbatticon_install.sh
-
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/cbatticon_uninstall.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/cbatticon_uninstall.hook
-   printf "rm /usr/share/applications/batti.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/cbatticon_uninstall.sh
-
-   # +-+-+-+-+
-   # SHOTWELL
-   # +-+-+-+-+
-
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/shotwell_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/shotwell_install.hook
-   printf "cp ${ARCHBANGRETRO_FOLDER}/applications/org.gnome.Shotwell.desktop /usr/share/applications/" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/shotwell_install.sh
-   printf "rm /usr/share/applications/org.gnome.Shotwell-Profile-Browser.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/shotwell_install.sh
-   printf "rm /usr/share/applications/org.gnome.Shotwell-Viewer.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/shotwell_install.sh
-
-   # +-+-+-+-+
-   # CATFISH
-   # +-+-+-+-+
-
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/catfish_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/catfish_install.hook
-   printf "cp ${ARCHBANGRETRO_FOLDER}/applications/org.xfce.Catfish.desktop /usr/share/applications/" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/catfish_install.sh
-  
-   # +-+-+-+-
-   # XFBURN
-   # +-+-+-+-
-
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/xfburn_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/xfburn_install.hook
-   printf "cp ${ARCHBANGRETRO_FOLDER}/applications/xfburn.desktop /usr/share/applications/" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/xfburn_install.sh
-
-   # +-+-
-   # EXO
-   # +-+-
-
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/exo_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/exo_install.hook
-   printf "cp ${ARCHBANGRETRO_FOLDER}/applications/exo-preferred-applications.desktop /usr/share/applications/" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/exo_install.sh
-
-   # +-+-+-+-+-+
-   # LIBFM-GTK2
-   # +-+-+-+-+-+
-
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/libfm-gtk2_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/libfm-gtk2_install.hook
-   printf "cp ${ARCHBANGRETRO_FOLDER}/applications/exo-preferred-applications.desktop /usr/share/applications/" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/libfm-gtk2_install.sh
-
-   # +-+-+-+-+-+
-   # LXTERMINAL
-   # +-+-+-+-+-+
-
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/lxterminal_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/lxterminal_install.hook
-   printf "cp ${ARCHBANGRETRO_FOLDER}/applications/lxterminal.desktop /usr/share/applications/" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/lxterminal_install.sh
-
-   # +-+-+-+-+-+-+-+-+-+-+-+
-   # NETWORK-MANAGER-APPLET
-   # +-+-+-+-+-+-+-+-+-+-+-+
-
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/network-manager-applet_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/network-manager-applet_install.hook
-   printf "cp ${ARCHBANGRETRO_FOLDER}/applications/nm-connection-editor.desktop /usr/share/applications/\n" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/network-manager-applet_install.sh
-   printf "sed -i 's/Exec=nm-applet/Exec=nm-applet --sm-disable/g' /etc/xdg/autostart/nm-applet.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/network-manager-applet_install.sh
-
-   # +-+-+-+-+-+-+-+-+-+
-   # GNOME-DISK-UTILITY
-   # +-+-+-+-+-+-+-+-+-+
-
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/gnome-disk-utility_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/gnome-disk-utility_install.hook
-   printf "cp ${ARCHBANGRETRO_FOLDER}/applications/org.gnome.DiskUtility.desktop /usr/share/applications/" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/gnome-disk-utility_install.sh
-
-   # +-+-+-
-   # TINT2
-   # +-+-+-
-
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/tint2_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/tint2_install.hook
-   printf "cp ${ARCHBANGRETRO_FOLDER}/applications/tint2conf.desktop /usr/share/applications/" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/tint2conf_install.sh
-
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/tint2_uninstall.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/tint2_uninstall.hook
-   printf "rm /usr/share/applications/tint2conf.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/tint2_uninstall.sh
-
-   # +-+-+-+-+-+-+-
-   # HARDINFO-GIT
-   # +-+-+-+-+-+-+-
-
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/hardinfo-git_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/hardinfo-git_install.hook
-   printf "cp ${ARCHBANGRETRO_FOLDER}/applications/hardinfo.desktop /usr/share/applications/" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/hardinfo-git_install.sh
-
-   # +-+-+-
-   # GMRUN
-   # +-+-+-
-
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/gmrun_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/gmrun_install.hook
-   printf "rm /usr/share/applications/gmrun.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/gmrun_install.sh
-
-   # +-+-+-+-+
-   # NITROGEN
-   # +-+-+-+-+
-
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/nitrogen_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/nitrogen_install.hook
-   printf "rm /usr/share/applications/nitrogen.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/nitrogen_install.sh
-
-   # +-+-
-   # VIM
-   # +-+-
-
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/vim_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/vim_install.hook
-   printf "rm /usr/share/applications/vim.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/vim_install.sh
-
-   # +-+-+-
-   # AVAHI
-   # +-+-+-
-
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/avahi_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/avahi_install.hook
-   printf "rm /usr/share/applications/avahi-discover.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/avahi_install.sh
-   printf "rm /usr/share/applications/bssh.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/avahi_install.sh
-   printf "rm /usr/share/applications/bvnc.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/avahi_install.sh
-
-   # +-+-+-+-+-
-   # V4L-UTILS
-   # +-+-+-+-+-
-
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/v4l-utils_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/v4l-utils_install.hook
-   printf "rm /usr/share/applications/qv4l2.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/v4l-utils_install.sh
-   printf "rm /usr/share/applications/qvidcap.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/v4l-utils_install.sh
-
-   # +-+-+-
-   # CMAKE
-   # +-+-+-
-
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/cmake_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/cmake_install.hook
-   printf "rm /usr/share/applications/cmake-gui.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/cmake_install.sh
-
-   # +-+-+-
-   # CONKY
-   # +-+-+-
-
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/conky_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/conky_install.hook
-   printf "rm /usr/share/applications/conky.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/conky_install.sh
-
-   # +-+-+-+-
-   # LXINPUT
-   # +-+-+-+-
-
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/lxinput_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/lxinput_install.hook
-   printf "rm /usr/share/applications/lxinput.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/lxinput_install.sh
-
-   # +-+-+-+-+-+
-   # VOLUMEICON
-   # +-+-+-+-+-+
-
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/volumeicon_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/volumeicon_install.hook
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/volumeicon_uninstall.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/volumeicon_uninstall.hook
-
-   printf "cp ${ARCHBANGRETRO_FOLDER}/applications/volumeicon.desktop /etc/xdg/autostart/\n" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/volumeicon_install.sh
-   printf "rm /usr/share/applications/volumeicon.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/volumeicon_install.sh
-
-   printf "rm /etc/xdg/autostart/volumeicon.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/volumeicon_uninstall.sh
-
-
-   # +-+-+-+
-   # LIBGDA
-   # +-+-+-+
-
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/libgda_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/libgda_install.hook
-   printf "rm /usr/share/applications/gda-browser-5.0.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/libgda_install.sh
-   printf "rm /usr/share/applications/gda-control-center-5.0.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/libgda_install.sh
-
-   # +-+-+-
-   # GMRUN
-   # +-+-+-
-
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/gmrun_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/gmrun_install.hook
-   printf "rm /usr/share/applications/gmrun.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/gmrun_install.sh
-
-   # +-+-+-+-+-+-+-+-+-+
-   # XFCE4-NOTIFYD
-   # +-+-+-+-+-+-+-+-+-+
-
-   printf "Exec = ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/xfce4-notifyd_install.sh" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/xfce4-notifyd_install.hook
-   printf "gawk -i inplace '!" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/xfce4-notifyd_install.sh
-   printf "/OnlyShowIn/' /etc/xdg/autostart/xfce4-notifyd.desktop" >> ${ARCHBANGRETRO_FOLDER}/HOOKS/scripts/xfce4-notifyd_install.sh
-
-
-cp -R ${ARCHBANGRETRO_FOLDER}/HOOKS/* /etc/pacman.d/hooks/ 
-
-
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 # DECLARE PYTHONHOME FOR PKGBUILD
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 
-# Text to be added
-TEXT="\n\n# +-+-+-+-+-+-+-+-+-+-+-+-+-+\n# SETUP PYTHON VARIABLE\n# +-+-+-+-+-+-+-+-+-+-+-+-+-+\n\nexport PYTHONHOME=/usr\n\n\n\n\n"
-
-# Backup the original makepkg.conf file
-cp /etc/makepkg.conf /etc/makepkg.conf.backup
-
-# Append the text to makepkg.conf
-echo -e "$TEXT" | tee -a /etc/makepkg.conf > /dev/null
+cd ${SCRIPTS_DIR}
+source ./pythonhome.sh
 
 # +-+-+-+-+-+-+-+-
 # GNOME-CARBONATE
@@ -756,100 +604,13 @@ echo -e "$TEXT" | tee -a /etc/makepkg.conf > /dev/null
 
 gtk-update-icon-cache -f -t /usr/share/icons/gnome-carbonate/
 
-# +-+-+-+-+-+-+-+-+-+-+-+-+-+-
-# GNOME-COLORS-ICON-THEME-BIN
-# +-+-+-+-+-+-+-+-+-+-+-+-+-+-
-
-gtk-update-icon-cache -f -t /usr/share/icons/gnome-colors-icon-theme/
-
-rm -rf /usr/share/icons/gnome-brave
-rm -rf /usr/share/icons/gnome-dust
-rm -rf /usr/share/icons/gnome-human
-rm -rf /usr/share/icons/gnome-illustrious
-rm -rf /usr/share/icons/gnome-noble
-rm -rf /usr/share/icons/gnome-tribute
-rm -rf /usr/share/icons/gnome-wine
-rm -rf /usr/share/icons/gnome-wise
-
-# +-+-+-+-+-+-+-+
-# FLAT-REMIX-GTK
-# +-+-+-+-+-+-+-+
-
-rm -rf /usr/share/themes/Flat-Remix-GTK-Black-*
-
-rm -rf /usr/share/themes/Flat-Remix-GTK-Blue-Dark-*
-rm -rf /usr/share/themes/Flat-Remix-GTK-Blue-Darke*
-rm -rf /usr/share/themes/Flat-Remix-GTK-Blue-Solid
-rm -rf /usr/share/themes/Flat-Remix-GTK-Blue-Light*
-
-rm -rf /usr/share/themes/Flat-Remix-GTK-Green-Dark-*
-rm -rf /usr/share/themes/Flat-Remix-GTK-Green-Darke*
-rm -rf /usr/share/themes/Flat-Remix-GTK-Green-Solid
-rm -rf /usr/share/themes/Flat-Remix-GTK-Green-Light*
-
-rm -rf /usr/share/themes/Flat-Remix-GTK-Red-Dark-*
-rm -rf /usr/share/themes/Flat-Remix-GTK-Red-Darke*
-rm -rf /usr/share/themes/Flat-Remix-GTK-Red-Solid
-rm -rf /usr/share/themes/Flat-Remix-GTK-Red-Light*
-
-rm -rf /usr/share/themes/Flat-Remix-GTK-Yellow-Dark-*
-rm -rf /usr/share/themes/Flat-Remix-GTK-Yellow-Darke*
-rm -rf /usr/share/themes/Flat-Remix-GTK-Yellow-Solid
-rm -rf /usr/share/themes/Flat-Remix-GTK-Yellow-Light*
-
-rm -rf /usr/share/themes/Flat-Remix-GTK-Brown-Dark-*
-rm -rf /usr/share/themes/Flat-Remix-GTK-Brown-Darke*
-rm -rf /usr/share/themes/Flat-Remix-GTK-Brown-Solid
-rm -rf /usr/share/themes/Flat-Remix-GTK-Brown-Light*
-
-rm -rf /usr/share/themes/Flat-Remix-GTK-Cyan-Dark-*
-rm -rf /usr/share/themes/Flat-Remix-GTK-Cyan-Darke*
-rm -rf /usr/share/themes/Flat-Remix-GTK-Cyan-Solid
-rm -rf /usr/share/themes/Flat-Remix-GTK-Cyan-Light*
-
-rm -rf /usr/share/themes/Flat-Remix-GTK-Grey-Dark-*
-rm -rf /usr/share/themes/Flat-Remix-GTK-Grey-Darke*
-rm -rf /usr/share/themes/Flat-Remix-GTK-Grey-Solid
-rm -rf /usr/share/themes/Flat-Remix-GTK-Grey-Light*
-
-rm -rf /usr/share/themes/Flat-Remix-GTK-Magenta-Dark-*
-rm -rf /usr/share/themes/Flat-Remix-GTK-Magenta-Darke*
-rm -rf /usr/share/themes/Flat-Remix-GTK-Magenta-Solid
-rm -rf /usr/share/themes/Flat-Remix-GTK-Magenta-Light*
-
-rm -rf /usr/share/themes/Flat-Remix-GTK-Orange-Dark-*
-rm -rf /usr/share/themes/Flat-Remix-GTK-Orange-Darke*
-rm -rf /usr/share/themes/Flat-Remix-GTK-Orange-Solid
-rm -rf /usr/share/themes/Flat-Remix-GTK-Orange-Light*
-
-rm -rf /usr/share/themes/Flat-Remix-GTK-Brown-Dark-*
-rm -rf /usr/share/themes/Flat-Remix-GTK-Brown-Darke*
-rm -rf /usr/share/themes/Flat-Remix-GTK-Brown-Solid
-rm -rf /usr/share/themes/Flat-Remix-GTK-Brown-Light*
-
-rm -rf /usr/share/themes/Flat-Remix-GTK-Teal-Dark-*
-rm -rf /usr/share/themes/Flat-Remix-GTK-Teal-Darke*
-rm -rf /usr/share/themes/Flat-Remix-GTK-Teal-Solid
-rm -rf /usr/share/themes/Flat-Remix-GTK-Teal-Light*
-
-rm -rf /usr/share/themes/Flat-Remix-GTK-Violet-Dark-*
-rm -rf /usr/share/themes/Flat-Remix-GTK-Violet-Darke*
-rm -rf /usr/share/themes/Flat-Remix-GTK-Violet-Solid
-rm -rf /usr/share/themes/Flat-Remix-GTK-Violet-Light*
-
-rm -rf /usr/share/themes/Flat-Remix-GTK-White-Dark-*
-rm -rf /usr/share/themes/Flat-Remix-GTK-White-Darke*
-rm -rf /usr/share/themes/Flat-Remix-GTK-White-Solid
-rm -rf /usr/share/themes/Flat-Remix-GTK-White-Light*
-
-
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 # SLIM THEMES AND CONFIGURATION
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 
-cp -R ${ARCHBANGRETRO_FOLDER}/slim/themes /usr/share/slim/
+# cp -R ${ARCHBANGRETRO_FOLDER}/slim/themes /usr/share/slim/
 
-cp ${ARCHBANGRETRO_FOLDER}/slim/slim.conf /etc/
+# cp ${ARCHBANGRETRO_FOLDER}/slim/slim.conf /etc/
 
 # +-+-+-+-
 # RC.CONF
@@ -887,7 +648,7 @@ chmod +x /usr/share/ab/ab.png
 # ENABLE SLIM
 # +-+-+-+-+-+-
 
-systemctl enable slim.service
+# systemctl enable slim.service
 
 # +-+-+-+-+-+-+-+-+-+
 # FIREFOX EXTENSIONS
@@ -897,27 +658,17 @@ mkdir -p /usr/lib/firefox/distribution/extensions
 cp ${ARCHBANGRETRO_FOLDER}/firefox/* /usr/lib/firefox/distribution/extensions/
 chmod +x /usr/lib/firefox/distribution/extensions/* 
 
-# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
-# /ETC/PROFILE 
-#
-# Make HD resolution available 
-# under VMware video.
-# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
-
-cat ${ARCHBANGRETRO_FOLDER}/profile/profile >> /etc/profile
-
 #+-+-+-+-+-+-
 # NM-APPLET
 #+-+-+-+-+-+-
 
-sed -i 's/Exec=nm-applet/Exec=nm-applet --sm-disable/g' /etc/xdg/autostart/nm-applet.desktop
+# sed -i 's/Exec=nm-applet/Exec=nm-applet --sm-disable/g' /etc/xdg/autostart/nm-applet.desktop
 
 #+-+-+-+-+-+-+-+
 # XFCE4-NOTIFYD
 #+-+-+-+-+-+-+-+
 
-gawk -i inplace '!/OnlyShowIn/' /etc/xdg/autostart/xfce4-notifyd.desktop
-
+# gawk -i inplace '!/OnlyShowIn/' /etc/xdg/autostart/xfce4-notifyd.desktop
 
 # +-+-+-+-+-+-+-+-+-+-+
 # MHWD-MANJARO INSTALL
@@ -950,43 +701,14 @@ else
   mhwd -a pci free 0300
 fi
 
-# +-+-+-+-+-+-+-+-+-
-# TTF-MS-WIN11-AUTO
-# +-+-+-+-+-+-+-+-+-
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+# Xorg CONFIG for VmWare 1080p
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
-pacman -Ssq ttf-ms-win11-auto | xargs sudo pacman -S --noconfirm
+# This is now done at boot via slim.service
 
-# +-+-+-+-+-+-+-+-+-+-+
-# CLEANUP OPENBOX MENU
-# +-+-+-+-+-+-+-+-+-+-+
-
-cp -R ${ARCHBANGRETRO_FOLDER}/applications /usr/share/
-
-cp /usr/share/applications/volumeicon.desktop /etc/xdg/autostart
-
-rm /usr/share/applications/pcmanfm-desktop-pref.desktop
-rm /usr/share/applications/avahi-discover.desktop
-rm /usr/share/applications/conky.desktop
-rm /usr/share/applications/tint2.desktop
-rm /usr/share/applications/volumeicon.desktop
-rm /usr/share/applications/qv4l2.desktop
-rm /usr/share/applications/qvidcap.desktop
-rm /usr/share/applications/cmake-gui.desktop
-rm /usr/share/applications/gda-browser-5.0.desktop
-rm /usr/share/applications/gda-control-center-5.0.desktop
-rm /usr/share/applications/bssh.desktop
-rm /usr/share/applications/bvnc.desktop
-rm /usr/share/applications/nitrogen.desktop
-rm /usr/share/applications/lxinput.desktop
-rm /usr/share/applications/vim.desktop
-rm /usr/share/applications/gmrun.desktop
-rm /usr/share/applications/assistant.desktop
-rm /usr/share/applications/designer.desktop
-rm /usr/share/applications/linguist.desktop
-rm /usr/share/applications/qdbusviewer.desktop
-rm /usr/share/applications/lstopo.desktop
-rm /usr/share/applications/org.gnome.Shotwell-Profile-Browser.desktop
-rm /usr/share/applications/org.gnome.Shotwell-Viewer.desktop
+# cd ${SCRIPTS_DIR}
+# source ./slim_execstartpre.sh
 
 EOF
 
