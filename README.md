@@ -10,6 +10,7 @@
 
 Party with ArchBang Linux like it's 2012 with Openbox !
 
-### To do
+
+#### To do
 1. Make live ISO version
 2. Have a GUI installer using Calamares
