@@ -694,14 +694,13 @@ if [ ${NVIDIA} = "YES" ]; then
      rm -rf /home/${ARCH_USER}/nvidia-340xx-lts
 
      cp ${ARCHBANGRETRO_FOLDER}/nvidia/30-nvidia-ignoreabi.conf /etc/X11/xorg.conf.d/
+  
   else 
      mhwd -a pci nonfree 0300
   fi
 
 else 
-  cd ${SCRIPTS_DIR}
-  source ./add_virtualization_graphics_drivers.sh
-  # mhwd -a pci free 0300
+  mhwd -a pci free 0300
 fi
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -713,6 +712,16 @@ fi
 # cd ${SCRIPTS_DIR}
 # source ./slim_execstartpre.sh
 
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
+# Making sure the graphic virtual drivers 
+# are loaded during iniramfs to ensure full screen
+# during slim login.
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
+
+cd ${SCRIPTS_DIR}
+source ./add_virtualization_graphics_drivers.sh
+
+  
 EOF
 
 #
