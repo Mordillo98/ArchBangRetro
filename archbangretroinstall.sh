@@ -295,7 +295,7 @@ printf "\n${CYAN}ARCHBANGRETRO_FILE_URL = ${YELLOW}${ARCHBANGRETRO_FILE_URL}${NC
 curl -L -o archbangretro.tar.xz "${ARCHBANGRETRO_FILE_URL}"
 ACTUAL_MD5=$(md5sum "$(basename "${ARCHBANGRETRO_FILE_URL}")" | awk '{ print $1 }')
 
-Compare the expected and actual MD5 checksums
+# Compare the expected and actual MD5 checksums
 if [[ "${ARCHBANGRETRO_EXPECTED_MD5}" == "${ACTUAL_MD5}" ]]; then
    printf "\n${GREEN}File download successful and MD5 checksum verified${NC}\n\n"
    sleep 2
@@ -434,15 +434,16 @@ SOUND="volumeicon alsa-utils pulseaudio alsa-firmware alsa-oss"
 NETWORK="network-manager-applet broadcom-wl xfce4-notifyd"
 BROWSER="firefox"
 XF86="xf86-input-elographics xf86-input-evdev xf86-input-libinput xf86-input-synaptics xf86-input-vmmouse xf86-input-void xf86-input-wacom"
+VIRTUAL_AGENTS="hyperv open-vm-tools qemu-guest-agent virtualbox-guest-utils"
 FONTS_WIN11="p7zip udisks2 curl expat fuse2 gumbo-parser doxygen help2man"
 SYSLINUX="syslinux gptfdisk mtools efibootmgr"
 FIRMWARE="ast-firmware upd72020x-fw linux-firmware-qlogic aic94xx-firmware wd719x-firmware"
-CALAMARES="qt5 kpmcore yaml-cpp boost extra-cmake-modules kiconthemes5"
-
+#CALAMARES="qt5 kpmcore yaml-cpp boost extra-cmake-modules kiconthemes5"
+CALAMARES="kconfig kcoreaddons ki18n kiconthemes kio polkit-qt6 qt6-base qt6-svg qt6-tools solid extra-cmake-modules yaml-cpp kpackage kparts kpmcore"
 
 # XF86="xf86-input-elographics xf86-input-evdev xf86-input-libinput xf86-input-synaptics xf86-input-vmmouse xf86-input-void xf86-input-wacom xf86-video-amdgpu xf86-video-ati xf86-video-dummy xf86-video-fbdev xf86-video-intel xf86-video-nouveau xf86-video-openchrome xf86-video-sisusb xf86-video-vesa xf86-video-vmware xf86-video-voodoo xf86-video-qxl"
 
-pacstrap /mnt base base-devel linux linux-headers linux-firmware man-db man-pages texinfo grub efibootmgr $AUR_APPS $EDITOR $XORG $OPENBOX $OPENBOX_MENU $ARCHBANG_APPS $ARCHBANG_ICONS $CODECS $SOUND $NETWORK $BROWSER $XF86 $FONTS_WIN11 $SYSLINUX $FIRMWARE $CALAMARES 
+pacstrap /mnt base base-devel linux linux-headers linux-firmware man-db man-pages texinfo grub efibootmgr $AUR_APPS $EDITOR $XORG $OPENBOX $OPENBOX_MENU $ARCHBANG_APPS $ARCHBANG_ICONS $CODECS $SOUND $NETWORK $BROWSER $XF86 $FONTS_WIN11 $SYSLINUX $FIRMWARE $CALAMARES $VIRTUAL_AGENTS
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 # COPYING MAKEPKG.CONF TO ARCHBANGRETRO
@@ -698,7 +699,9 @@ if [ ${NVIDIA} = "YES" ]; then
   fi
 
 else 
-  mhwd -a pci free 0300
+  cd ${SCRIPTS_DIR}
+  source ./add_virtualization_graphics_drivers.sh
+  # mhwd -a pci free 0300
 fi
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+
