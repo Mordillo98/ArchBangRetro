@@ -635,6 +635,15 @@ chmod +x /usr/bin/conkywonky
 cp ${ARCHBANGRETRO_FOLDER}/conky/conkyswitcher /usr/bin/
 chmod +x /usr/bin/conkyswitcher
 
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
+# MENU_WATCH will check if any files under /usr/share/applications
+# are added, removed or modified.  If so, it resets the list for 
+# openbox-menu to reflect that change immediatly as supposed to reload
+# the menu sevetimes manually to reflect the change. 
+# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
+
+cp ${ARCHBANGRETRO_FOLDER}/menu_watch/menu_watch.sh /usr/bin/
+
 # +-+-+-+-+-+-+-
 # AB & DOC.html
 # +-+-+-+-+-+-+-
