@@ -134,6 +134,12 @@ cp -R /mnt${SOURCE_DIR}/HOOKS/* ${DEST_DIR}
 
    printf "rm /etc/xdg/autostart/volumeicon.desktop" >> /mnt/etc/pacman.d/hooks/scripts/volumeicon_uninstall.sh
 
+   # +-+-+-
+   # CODE
+   # +-+-+-
+
+   printf "cp ${SOURCE_DIR}/applications/code*.desktop /usr/share/applications/" >> /mnt/etc/pacman.d/hooks/scripts/code_install.sh
+
    # +-+-+-+-+-+-+-+-+-+
    # XFCE4-NOTIFYD
    # +-+-+-+-+-+-+-+-+-+
