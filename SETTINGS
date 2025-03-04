@@ -60,7 +60,7 @@ NVIDIA_LEGACY="NO"
 # Define the URL of the file and its expected MD5 checksum
 
 ARCHBANGRETRO_FILE_URL=https://sourceforge.net/projects/archbangretro/files/archbangretro.tar.xz
-ARCHBANGRETRO_EXPECTED_MD5=0228de9f341f2ae4d3cec30b04f32113
+ARCHBANGRETRO_EXPECTED_MD5=30b2cc160711b103a639626226424f7c
 
 # Specify the URL of the MANJARO_GPG_FILE
 MANJARO_GPG_URL="https://gitlab.manjaro.org/packages/core/manjaro-keyring/-/raw/master/manjaro.gpg"
