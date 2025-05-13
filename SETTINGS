@@ -18,7 +18,7 @@ MOUNTED_DRIVE_ISO="/mnt/ISO"
 
 LIVE_BUILD_DIR="${MOUNTED_DRIVE_ISO}/archbangretro_liveiso"
 
-TIMEZONE="America/Toronto"   
+TIMEZONE="America/Montreal"   
 REGION="en_CA.UTF-8 UTF-8"     
 LANGUAGE="en_CA.UTF-8"
 KEYMAP="us"
