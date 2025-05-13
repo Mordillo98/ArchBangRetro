@@ -680,8 +680,9 @@ chmod +x /usr/share/ab/ab.png
 
 printf "\n${YELLOW}Adding firefox vacuum script...\n${NC}"
 
-cd ${CURRENT_DIR}
-install -D ./firefox-vacuum.sh /usr/local/bin/firefox-vacuum.sh
+install -D ${ARCHBANGRETRO_FOLDER}/scripts/firefox-vacuum.sh /usr/local/bin/firefox-vacuum.sh
+
+chmod 755 /usr/local/bin/firefox-vacuum.sh
 
 # +-+-+-+-+-+-+-+-+-+
 # MIRRORLIST
@@ -689,11 +690,12 @@ install -D ./firefox-vacuum.sh /usr/local/bin/firefox-vacuum.sh
 
 printf "\n${YELLOW}Adding mirrorlist script and file...\n${NC}"
 
-cd ${CURRENT_DIR}
-install -D ./setup_mirrors.sh /usr/local/bin/setup_mirrors.sh
+install -D ${ARCHBANGRETRO_FOLDER}/scripts/setup_mirrors.sh /usr/local/bin/setup_mirrors.sh
 
-install -D ./mirrorlist /etc/pacman.d/mirrorlist
+install -D ${ARCHBANGRETRO_FOLDER}/scripts/mirrorlist /etc/pacman.d/mirrorlist
 
+chmod 755 /usr/local/bin/setup_mirrors.sh
+chmod 755 /etc/pacman.d/mirrorlist
 
 # +-+-+-+-+-+-+-+-+-+-+
 # MHWD-MANJARO INSTALL
