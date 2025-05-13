@@ -706,6 +706,8 @@ else
   mhwd -a pci free 0300
 fi
 
+printf "${NC}"
+
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 # Xorg CONFIG for VmWare 1080p
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+
