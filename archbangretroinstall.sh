@@ -347,7 +347,7 @@ REFLECTOR_COUNTRY=$(curl -s https://ipinfo.io/${IP}/country)
 
 printf "${YELLOW}Setting up best 5 https mirrors from ${REFLECTOR_COUNTRY} for this install.\n\n${NC}" 
 
-reflector --country "${REFLECTOR_COUNTRY}" --age 6 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
+# reflector --country "${REFLECTOR_COUNTRY}" --age 6 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
 
 pacman -Sy > /dev/null
 
@@ -529,13 +529,13 @@ source ./bootloader_grub.sh
 # VI --> VIM symbolink link.
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+
 
-ln -s /usr/bin/vim /usr/bin/vi
+# ln -s /usr/bin/vim /usr/bin/vi
 
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 # CLS --> CLEAR symbolink link.
 # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 
-ln -s /usr/bin/clear /usr/bin/cls
+# ln -s /usr/bin/clear /usr/bin/cls
 
 # +-+-+-+-+-
 # NETWORKING
@@ -579,6 +579,8 @@ cp -R ${ARCHBANGRETRO_FOLDER}/skel/mozilla/* /etc/skel/.mozilla
 # cp -R ${ARCHBANGRETRO_FOLDER}/skel/screenlayout/* /etc/skel/.screenlayout
 
 cat > "/etc/skel/.xinitrc" << "EOT"
+export XCURSOR_THEME="Adwaita"
+export XCURSOR_SIZE="33"
 exec openbox-session
 EOT
 
@@ -659,14 +661,6 @@ chmod +x /usr/share/ab/ab.png
 # +-+-+-+-+-+-
 
 # systemctl enable slim.service
-
-# +-+-+-+-+-+-+-+-+-+
-# FIREFOX EXTENSIONS
-# +-+-+-+-+-+-+-+-+-+
-
-mkdir -p /usr/lib/firefox/distribution/extensions
-cp ${ARCHBANGRETRO_FOLDER}/firefox/* /usr/lib/firefox/distribution/extensions/
-chmod +x /usr/lib/firefox/distribution/extensions/* 
 
 #+-+-+-+-+-+-
 # NM-APPLET

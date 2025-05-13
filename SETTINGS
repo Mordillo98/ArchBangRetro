@@ -11,6 +11,13 @@ DRIVE_PART1=${DRIVE}1         # boot partition
 DRIVE_PART2=${DRIVE}2         # swap partition
 DRIVE_PART3=${DRIVE}3         # root partition
 
+DRIVE_LIVEISO="/dev/sda"                  # This drive will be formatted
+DRIVE_LIVEISO_PART1="${DRIVE_LIVEISO}1"   # This is the ext4 partition that will be created for /tmp to mount
+
+MOUNTED_DRIVE_ISO="/mnt/ISO"
+
+LIVE_BUILD_DIR="${MOUNTED_DRIVE_ISO}/archbangretro_liveiso"
+
 TIMEZONE="America/Toronto"   
 REGION="en_CA.UTF-8 UTF-8"     
 LANGUAGE="en_CA.UTF-8"
@@ -70,7 +77,7 @@ MHWD_URL="https://mirror.csclub.uwaterloo.ca/manjaro/stable/extra/x86_64/"
 
 # REPO LOCATIONS
 AURBIN_REPO="/dev/sdb2"
-AURBIN_LOCATION="/opt/repos/aurbin/"
+AURBIN_LOCATION="/home/arch/aurbin/"
 ARCHLINUX_REPO="/dev/sdb2"
 
 SCRIPTS_DIR=/opt/archbangretro/scripts
