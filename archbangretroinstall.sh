@@ -674,6 +674,27 @@ chmod +x /usr/share/ab/ab.png
 
 # gawk -i inplace '!/OnlyShowIn/' /etc/xdg/autostart/xfce4-notifyd.desktop
 
+# +-+-+-+-+-+-+-+-+-+
+# FIREFOX VACUUM
+# +-+-+-+-+-+-+-+-+-+
+
+printf "\n${YELLOW}Adding firefox vacuum script...\n${NC}"
+
+cd ${CURRENT_DIR}
+install -D ./firefox-vacuum.sh /usr/local/bin/firefox-vacuum.sh
+
+# +-+-+-+-+-+-+-+-+-+
+# MIRRORLIST
+# +-+-+-+-+-+-+-+-+-+
+
+printf "\n${YELLOW}Adding mirrorlist script and file...\n${NC}"
+
+cd ${CURRENT_DIR}
+install -D ./setup_mirrors.sh /usr/local/bin/setup_mirrors.sh
+
+install -D ./mirrorlist /etc/pacman.d/mirrorlist
+
+
 # +-+-+-+-+-+-+-+-+-+-+
 # MHWD-MANJARO INSTALL
 # +-+-+-+-+-+-+-+-+-+-+
